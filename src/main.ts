@@ -8,6 +8,7 @@ import { registerShutdownHandlers } from './shared/infrastructure/shutdown.js';
 import { buildKnex, destroyKnex } from './shared/infrastructure/db/knex.js';
 import { createCache } from './shared/infrastructure/cache/create-cache.js';
 import { buildAuthModule } from './modules/auth/module.js';
+import { buildTagsModule } from './modules/tags/module.js';
 
 function bootstrap(): void {
   if (process.env.NODE_ENV !== 'production') {
@@ -30,9 +31,13 @@ function bootstrap(): void {
   const cache = createCache(config, logger);
 
   const authModule = buildAuthModule({ knex, config, logger, cache });
+  const tagsModule = buildTagsModule({ knex, config, logger });
 
   const router = Router();
   for (const modRouter of authModule.routers) {
+    router.use(modRouter);
+  }
+  for (const modRouter of tagsModule.routers) {
     router.use(modRouter);
   }
 

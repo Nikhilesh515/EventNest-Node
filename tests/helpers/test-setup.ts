@@ -4,6 +4,7 @@ import { pino, type Logger } from 'pino';
 import type { Knex } from 'knex';
 import { buildKnex, destroyKnex } from '../../src/shared/infrastructure/db/knex.js';
 import { buildAuthModule } from '../../src/modules/auth/module.js';
+import { buildTagsModule } from '../../src/modules/tags/module.js';
 import { errorHandler } from '../../src/shared/http/middleware/error-handler.js';
 import { notFound } from '../../src/shared/http/middleware/not-found.js';
 import { requestId } from '../../src/shared/http/middleware/request-id.js';
@@ -73,7 +74,12 @@ export async function getSharedTestApp(): Promise<TestAppContext> {
   const knex = buildKnex(config.DATABASE_URL);
   const cache = createInMemoryCache();
 
+  process.env.JWT_SECRET = config.JWT_SECRET;
+  process.env.JWT_ISSUER = config.JWT_ISSUER;
+  process.env.JWT_AUDIENCE = config.JWT_AUDIENCE;
+
   const authModule = buildAuthModule({ knex, config, logger, cache });
+  const tagsModule = buildTagsModule({ knex, config, logger });
 
   const app = express();
   app.disable('x-powered-by');
@@ -85,8 +91,11 @@ export async function getSharedTestApp(): Promise<TestAppContext> {
     res.status(200).json({ status: 'Healthy', checks: [] });
   });
 
-  for (const router of authModule.routers) {
-    app.use(router);
+  for (const modRouter of authModule.routers) {
+    app.use(modRouter);
+  }
+  for (const modRouter of tagsModule.routers) {
+    app.use(modRouter);
   }
 
   app.use(notFound());
@@ -107,4 +116,5 @@ export async function resetTestData(knex: Knex): Promise<void> {
   await knex('refresh_tokens').del();
   await knex('permission_grants').del();
   await knex('users').where('email', 'like', '%@test.example.com').del();
+  await knex('tags').whereNotIn('name', ['Technology', 'Music', 'Food & Drink', 'Sports', 'Networking']).del();
 }

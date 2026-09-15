@@ -2,7 +2,6 @@ import request from 'supertest';
 import bcrypt from 'bcrypt';
 import type { Knex } from 'knex';
 import type { Express } from 'express';
-import type { TestAppContext } from './test-setup.js';
 
 export async function createTestUser(
   knex: Knex,
