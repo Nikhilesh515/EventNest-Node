@@ -10,6 +10,8 @@ import { createCache } from './shared/infrastructure/cache/create-cache.js';
 import { buildAuthModule } from './modules/auth/module.js';
 import { buildTagsModule } from './modules/tags/module.js';
 import { buildEventsModule } from './modules/events/module.js';
+import { buildRsvpsModule } from './modules/rsvps/module.js';
+import type { RsvpStatsPort } from './modules/rsvps/application/ports/rsvp-stats.port.js';
 
 function bootstrap(): void {
   if (process.env.NODE_ENV !== 'production') {
@@ -33,11 +35,26 @@ function bootstrap(): void {
 
   const authModule = buildAuthModule({ knex, config, logger, cache });
   const tagsModule = buildTagsModule({ knex, config, logger });
+
+  const rsvpsHolder: { module: ReturnType<typeof buildRsvpsModule> | null } = { module: null };
+  const rsvpStats: RsvpStatsPort = {
+    getGoingCounts: (ids) => rsvpsHolder.module!.providers.rsvpStats.getGoingCounts(ids),
+  };
+
   const eventsModule = buildEventsModule({
     knex,
     config,
     logger,
     tagLookup: tagsModule.services.tags,
+    userLookup: authModule.providers.userLookup,
+    rsvpStats,
+  });
+
+  rsvpsHolder.module = buildRsvpsModule({
+    knex,
+    config,
+    logger,
+    eventLookup: eventsModule.providers.eventLookup,
     userLookup: authModule.providers.userLookup,
   });
 
@@ -49,6 +66,9 @@ function bootstrap(): void {
     router.use(modRouter);
   }
   for (const modRouter of eventsModule.routers) {
+    router.use(modRouter);
+  }
+  for (const modRouter of rsvpsHolder.module!.routers) {
     router.use(modRouter);
   }
 

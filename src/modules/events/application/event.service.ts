@@ -5,6 +5,7 @@ import { DuplicateEventTitleError, InvalidTagError } from '../domain/errors.js';
 import type { TagLookupPort } from './ports/tag-lookup.port.js';
 import type { UserLookupPort } from '../../auth/application/ports/user-lookup.port.js';
 import type { EventLookupPort, EventSummary } from './ports/event-lookup.port.js';
+import type { RsvpStatsPort } from '../../rsvps/application/ports/rsvp-stats.port.js';
 import type {
   EventDto,
   PaginatedEventsDto,
@@ -20,6 +21,7 @@ export class EventService implements EventLookupPort {
     private readonly events: EventRepository,
     private readonly tags: TagLookupPort,
     private readonly users: UserLookupPort,
+    private readonly rsvpStats?: RsvpStatsPort,
   ) {}
 
   async create(input: CreateEventInput, userId: string, userName: string): Promise<EventDto> {
