@@ -91,6 +91,7 @@ export async function getSharedTestApp(): Promise<TestAppContext> {
   const rsvpsHolder: { module: ReturnType<typeof buildRsvpsModule> | null } = { module: null };
   const rsvpStats: RsvpStatsPort = {
     getGoingCounts: (ids) => rsvpsHolder.module!.providers.rsvpStats.getGoingCounts(ids),
+    getMaybeCounts: (ids) => rsvpsHolder.module!.providers.rsvpStats.getMaybeCounts(ids),
   };
 
   const eventsModule = buildEventsModule({

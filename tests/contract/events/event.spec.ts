@@ -231,6 +231,58 @@ describe('GET /api/events', () => {
     expect(res.status).toBe(200);
     expect(res.body.result.items[0].goingCount).toBe(2);
   });
+
+  it('TC-EVT-016: list items include maybeCount', async () => {
+    const createRes = await request(ctx.app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ ...validEvent, title: 'Maybe Count Check' });
+
+    await request(ctx.app)
+      .put(`/api/events/${createRes.body.result.id}/publish`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    const rsvpRes = await request(ctx.app)
+      .post(`/api/events/${createRes.body.result.id}/rsvps`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ guestCount: 1 });
+
+    await request(ctx.app)
+      .put(`/api/rsvps/${rsvpRes.body.result.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'Maybe' });
+
+    const res = await request(ctx.app).get('/api/events?search=Maybe Count Check');
+
+    expect(res.status).toBe(200);
+    expect(res.body.result.items[0].maybeCount).toBe(1);
+    expect(res.body.result.items[0].goingCount).toBe(0);
+  });
+
+  it('TC-EVT-017: owner can fetch their own draft by id', async () => {
+    const createRes = await request(ctx.app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ ...validEvent, title: 'Draft Fetch Check' });
+
+    const res = await request(ctx.app)
+      .get(`/api/events/${createRes.body.result.id}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.result.status).toBe('Draft');
+  });
+
+  it('TC-EVT-018: anonymous cannot fetch a draft by id', async () => {
+    const createRes = await request(ctx.app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ ...validEvent, title: 'Draft Hidden Check' });
+
+    const res = await request(ctx.app).get(`/api/events/${createRes.body.result.id}`);
+
+    expect(res.status).toBe(404);
+  });
 });
 
 describe('GET /api/events/my', () => {

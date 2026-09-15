@@ -129,6 +129,10 @@ export class RsvpService implements RsvpStatsPort {
     return this.rsvps.getGoingCounts(eventIds);
   }
 
+  async getMaybeCounts(eventIds: string[]): Promise<Record<string, number>> {
+    return this.rsvps.getMaybeCounts(eventIds);
+  }
+
   private toDto(rsvp: Rsvp): RsvpDto {
     return {
       id: rsvp.id,

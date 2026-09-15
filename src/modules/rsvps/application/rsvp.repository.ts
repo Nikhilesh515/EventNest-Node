@@ -17,6 +17,7 @@ export interface RsvpRepository {
   listByUser(userId: string): Promise<Rsvp[]>;
   sumGuestCountByEvent(eventId: string, excludeStatus?: string): Promise<number>;
   getGoingCounts(eventIds: string[]): Promise<Record<string, number>>;
+  getMaybeCounts(eventIds: string[]): Promise<Record<string, number>>;
   listByEventWithEventTitle(eventId: string): Promise<RsvpWithEventTitle[]>;
   listByUserWithEventTitle(userId: string): Promise<RsvpWithEventTitle[]>;
 }

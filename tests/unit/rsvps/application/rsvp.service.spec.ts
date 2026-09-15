@@ -54,6 +54,16 @@ function createMockRepo(): RsvpRepository {
       }
       return counts;
     }),
+    getMaybeCounts: vi.fn(async (eventIds: string[]) => {
+      const counts: Record<string, number> = {};
+      for (const id of eventIds) {
+        const maybe = Array.from(store.values()).filter(
+          (r) => r.eventId === id && r.status === 'Maybe',
+        );
+        counts[id] = maybe.reduce((sum, r) => sum + r.guestCount, 0);
+      }
+      return counts;
+    }),
     listByEventWithEventTitle: vi.fn(async (eventId: string) => {
       const rsvps = Array.from(store.values()).filter((r) => r.eventId === eventId);
       return rsvps.map((r) => ({ rsvp: r, eventTitle: 'Test Event', eventStartsAt: new Date(), eventLocation: 'Test Location' }));

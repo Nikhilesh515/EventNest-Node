@@ -32,6 +32,7 @@ export function createEventRoutes(eventService: Parameters<typeof createEventCon
 
   router.get(
     '/api/events/:id',
+    attachUserIfPresent,
     validate(eventIdParamSchema),
     (req, res) => controller.getById(req, res),
   );

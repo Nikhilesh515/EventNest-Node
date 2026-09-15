@@ -90,10 +90,21 @@ export class KnexRsvpRepository implements RsvpRepository {
   }
 
   async getGoingCounts(eventIds: string[]): Promise<Record<string, number>> {
+    return this.getGuestSumsByStatus(eventIds, 'Confirmed');
+  }
+
+  async getMaybeCounts(eventIds: string[]): Promise<Record<string, number>> {
+    return this.getGuestSumsByStatus(eventIds, 'Maybe');
+  }
+
+  private async getGuestSumsByStatus(
+    eventIds: string[],
+    status: string,
+  ): Promise<Record<string, number>> {
     if (eventIds.length === 0) return {};
     const rows = await this.knex('rsvps')
       .whereIn('event_id', eventIds)
-      .where({ status: 'Confirmed' })
+      .where({ status })
       .groupBy('event_id')
       .select('event_id')
       .sum('guest_count as count');
