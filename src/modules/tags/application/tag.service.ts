@@ -3,8 +3,9 @@ import type { TagRepository } from './tag.repository.js';
 import { Tag } from '../domain/tag.js';
 import { TagAlreadyExistsError } from '../domain/errors.js';
 import type { TagDto } from './dto/tag.dto.js';
+import type { TagLookupPort, TagSummary } from './ports/tag-lookup.port.js';
 
-export class TagService {
+export class TagService implements TagLookupPort {
   constructor(private readonly tags: TagRepository) {}
 
   async list(): Promise<TagDto[]> {
@@ -41,6 +42,11 @@ export class TagService {
     const tag = await this.tags.findById(id);
     if (!tag) throw new NotFoundError(`Tag '${id}' not found.`);
     await this.tags.delete(id);
+  }
+
+  async getTags(ids: string[]): Promise<TagSummary[]> {
+    const tags = await this.tags.findByIds(ids);
+    return tags.map((t) => ({ id: t.id, name: t.name, color: t.color }));
   }
 
   private toDto(tag: Tag): TagDto {

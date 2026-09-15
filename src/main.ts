@@ -9,6 +9,7 @@ import { buildKnex, destroyKnex } from './shared/infrastructure/db/knex.js';
 import { createCache } from './shared/infrastructure/cache/create-cache.js';
 import { buildAuthModule } from './modules/auth/module.js';
 import { buildTagsModule } from './modules/tags/module.js';
+import { buildEventsModule } from './modules/events/module.js';
 
 function bootstrap(): void {
   if (process.env.NODE_ENV !== 'production') {
@@ -32,12 +33,22 @@ function bootstrap(): void {
 
   const authModule = buildAuthModule({ knex, config, logger, cache });
   const tagsModule = buildTagsModule({ knex, config, logger });
+  const eventsModule = buildEventsModule({
+    knex,
+    config,
+    logger,
+    tagLookup: tagsModule.services.tags,
+    userLookup: authModule.providers.userLookup,
+  });
 
   const router = Router();
   for (const modRouter of authModule.routers) {
     router.use(modRouter);
   }
   for (const modRouter of tagsModule.routers) {
+    router.use(modRouter);
+  }
+  for (const modRouter of eventsModule.routers) {
     router.use(modRouter);
   }
 

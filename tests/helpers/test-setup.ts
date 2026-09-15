@@ -5,6 +5,7 @@ import type { Knex } from 'knex';
 import { buildKnex, destroyKnex } from '../../src/shared/infrastructure/db/knex.js';
 import { buildAuthModule } from '../../src/modules/auth/module.js';
 import { buildTagsModule } from '../../src/modules/tags/module.js';
+import { buildEventsModule } from '../../src/modules/events/module.js';
 import { errorHandler } from '../../src/shared/http/middleware/error-handler.js';
 import { notFound } from '../../src/shared/http/middleware/not-found.js';
 import { requestId } from '../../src/shared/http/middleware/request-id.js';
@@ -80,6 +81,13 @@ export async function getSharedTestApp(): Promise<TestAppContext> {
 
   const authModule = buildAuthModule({ knex, config, logger, cache });
   const tagsModule = buildTagsModule({ knex, config, logger });
+  const eventsModule = buildEventsModule({
+    knex,
+    config,
+    logger,
+    tagLookup: tagsModule.services.tags,
+    userLookup: authModule.providers.userLookup,
+  });
 
   const app = express();
   app.disable('x-powered-by');
@@ -95,6 +103,9 @@ export async function getSharedTestApp(): Promise<TestAppContext> {
     app.use(modRouter);
   }
   for (const modRouter of tagsModule.routers) {
+    app.use(modRouter);
+  }
+  for (const modRouter of eventsModule.routers) {
     app.use(modRouter);
   }
 
@@ -115,6 +126,8 @@ export async function destroySharedTestApp(): Promise<void> {
 export async function resetTestData(knex: Knex): Promise<void> {
   await knex('refresh_tokens').del();
   await knex('permission_grants').del();
+  await knex('event_tags').del();
+  await knex('events').whereNotIn('title', ['Tech Meetup 2026', 'Food Festival', 'Music Concert']).del();
   await knex('users').where('email', 'like', '%@test.example.com').del();
   await knex('tags').whereNotIn('name', ['Technology', 'Music', 'Food & Drink', 'Sports', 'Networking']).del();
 }

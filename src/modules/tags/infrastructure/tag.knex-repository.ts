@@ -54,6 +54,12 @@ export class KnexTagRepository implements TagRepository {
     await this.knex('tags').where({ id }).del();
   }
 
+  async findByIds(ids: string[]): Promise<Tag[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.knex('tags').whereIn('id', ids);
+    return rows.map((row) => Tag.reconstitute(rowToProps(row as Record<string, unknown>)));
+  }
+
   async list(): Promise<Tag[]> {
     const rows = await this.knex('tags').select('*');
     return rows.map((row) => Tag.reconstitute(rowToProps(row as Record<string, unknown>)));

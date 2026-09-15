@@ -5,10 +5,12 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.{test,spec}.ts'],
     threads: false,
+    fileParallelism: false,
+    pool: 'forks',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['src/shared/**/*.ts', 'src/modules/auth/**/*.ts'],
+      include: ['src/shared/**/*.ts', 'src/modules/auth/**/*.ts', 'src/modules/events/**/*.ts'],
       thresholds: { lines: 80 },
     },
   },
