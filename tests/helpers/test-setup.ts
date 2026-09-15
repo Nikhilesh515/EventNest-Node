@@ -2,7 +2,6 @@ import type { Express } from 'express';
 import express from 'express';
 import { pino, type Logger } from 'pino';
 import type { Knex } from 'knex';
-import { loadConfig, type AppConfig } from '../../src/config/env.js';
 import { buildKnex, destroyKnex } from '../../src/shared/infrastructure/db/knex.js';
 import { buildAuthModule } from '../../src/modules/auth/module.js';
 import { errorHandler } from '../../src/shared/http/middleware/error-handler.js';
@@ -10,11 +9,20 @@ import { notFound } from '../../src/shared/http/middleware/not-found.js';
 import { requestId } from '../../src/shared/http/middleware/request-id.js';
 import { requestLogger } from '../../src/shared/http/middleware/request-logger.js';
 import type { CachePort } from '../../src/shared/application/ports/cache-port.js';
+import { loadConfig, type AppConfig } from '../../src/config/env.js';
+
+export interface TestAppContext {
+  app: Express;
+  knex: Knex;
+  config: AppConfig;
+  logger: Logger;
+  cache: CachePort;
+}
 
 export function testConfig(overrides: Record<string, string> = {}): AppConfig {
   return loadConfig({
     NODE_ENV: 'test',
-    DATABASE_URL: 'postgres://postgres:postgres@localhost:5433/eventnest_test',
+    DATABASE_URL: 'postgres://postgres:postgres@127.0.0.1:5433/eventnest_test',
     JWT_SECRET: 'test-secret-value-0123456789abcdef',
     JWT_ISSUER: 'EventNest.AuthService',
     JWT_AUDIENCE: 'EventNest',
@@ -29,7 +37,7 @@ export function testLogger(): Logger {
   return pino({ level: 'silent' });
 }
 
-function createInMemoryCache(): CachePort {
+export function createInMemoryCache(): CachePort {
   const store = new Map<string, { value: unknown; expiresAt: number | null }>();
 
   return {
@@ -55,15 +63,11 @@ function createInMemoryCache(): CachePort {
   };
 }
 
-export interface TestAppContext {
-  app: Express;
-  knex: Knex;
-  config: AppConfig;
-  logger: Logger;
-  cache: CachePort;
-}
+let sharedCtx: TestAppContext | null = null;
 
-export async function buildTestApp(): Promise<TestAppContext> {
+export async function getSharedTestApp(): Promise<TestAppContext> {
+  if (sharedCtx) return sharedCtx;
+
   const config = testConfig();
   const logger = testLogger();
   const knex = buildKnex(config.DATABASE_URL);
@@ -88,10 +92,19 @@ export async function buildTestApp(): Promise<TestAppContext> {
   app.use(notFound());
   app.use(errorHandler(logger));
 
-  return { app, knex, config, logger, cache };
+  sharedCtx = { app, knex, config, logger, cache };
+  return sharedCtx;
 }
 
-export async function destroyTestApp(ctx: TestAppContext): Promise<void> {
-  await ctx.cache.close();
-  await destroyKnex(ctx.knex);
+export async function destroySharedTestApp(): Promise<void> {
+  if (!sharedCtx) return;
+  await sharedCtx.cache.close();
+  await destroyKnex(sharedCtx.knex);
+  sharedCtx = null;
+}
+
+export async function resetTestData(knex: Knex): Promise<void> {
+  await knex('refresh_tokens').del();
+  await knex('permission_grants').del();
+  await knex('users').where('email', 'like', '%@test.example.com').del();
 }

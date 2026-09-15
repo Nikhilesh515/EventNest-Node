@@ -1,11 +1,12 @@
 import request from 'supertest';
-import bcrypt from 'bcrypt';
 import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
   getSharedTestApp,
   destroySharedTestApp,
+  resetTestData,
   type TestAppContext,
-} from '../../helpers/auth-global.js';
+} from '../../helpers/test-setup.js';
+import { registerUser } from '../../helpers/auth-helpers.js';
 
 let ctx: TestAppContext;
 
@@ -18,27 +19,13 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await ctx.knex('refresh_tokens').del();
-  await ctx.knex('permission_grants').del();
-  await ctx.knex('users').where('email', 'like', '%@test.example.com').del();
+  await resetTestData(ctx.knex);
 });
-
-async function registerUser(
-  email: string,
-  password: string,
-  displayName: string,
-): Promise<{ refreshToken: string }> {
-  const res = await request(ctx.app).post('/api/auth/register').send({
-    email,
-    password,
-    displayName,
-  });
-  return { refreshToken: res.body.result.refreshToken };
-}
 
 describe('POST /api/auth/logout', () => {
   it('returns 204 with valid token', async () => {
     const { refreshToken } = await registerUser(
+      ctx.app,
       'logout-valid@test.example.com',
       'password123',
       'Logout User',
@@ -53,6 +40,7 @@ describe('POST /api/auth/logout', () => {
 
   it('revokes the refresh token after logout', async () => {
     const { refreshToken } = await registerUser(
+      ctx.app,
       'logout-revoke@test.example.com',
       'password123',
       'Revoke User',
@@ -77,6 +65,7 @@ describe('POST /api/auth/logout', () => {
 
   it('returns 204 for already revoked token (idempotent)', async () => {
     const { refreshToken } = await registerUser(
+      ctx.app,
       'logout-idempotent@test.example.com',
       'password123',
       'Idempotent User',

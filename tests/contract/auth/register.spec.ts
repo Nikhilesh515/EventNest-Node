@@ -3,8 +3,9 @@ import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
   getSharedTestApp,
   destroySharedTestApp,
+  resetTestData,
   type TestAppContext,
-} from '../../helpers/auth-global.js';
+} from '../../helpers/test-setup.js';
 
 let ctx: TestAppContext;
 
@@ -17,9 +18,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await ctx.knex('refresh_tokens').del();
-  await ctx.knex('permission_grants').del();
-  await ctx.knex('users').where('email', 'like', '%@test.example.com').del();
+  await resetTestData(ctx.knex);
 });
 
 describe('POST /api/auth/register', () => {

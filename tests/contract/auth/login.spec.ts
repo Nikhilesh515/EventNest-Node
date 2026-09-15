@@ -1,11 +1,12 @@
 import request from 'supertest';
-import bcrypt from 'bcrypt';
 import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
   getSharedTestApp,
   destroySharedTestApp,
+  resetTestData,
   type TestAppContext,
-} from '../../helpers/auth-global.js';
+} from '../../helpers/test-setup.js';
+import { createTestUser } from '../../helpers/auth-helpers.js';
 
 let ctx: TestAppContext;
 
@@ -18,38 +19,12 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await ctx.knex('refresh_tokens').del();
-  await ctx.knex('permission_grants').del();
-  await ctx.knex('users').where('email', 'like', '%@test.example.com').del();
+  await resetTestData(ctx.knex);
 });
-
-async function createTestUser(
-  email: string,
-  password: string,
-  displayName: string,
-  isActive = true,
-): Promise<{ id: string }> {
-  const role = await ctx.knex('roles').where('name', 'User').first();
-  const passwordHash = await bcrypt.hash(password, 12);
-  const [user] = await ctx
-    .knex('users')
-    .insert({
-      id: crypto.randomUUID(),
-      email,
-      display_name: displayName,
-      password_hash: passwordHash,
-      role_id: role!.id,
-      is_active: isActive,
-      created_at: new Date(),
-      updated_at: new Date(),
-    })
-    .returning('id');
-  return user;
-}
 
 describe('POST /api/auth/login', () => {
   it('returns 200 with valid credentials', async () => {
-    await createTestUser('login-valid@test.example.com', 'password123', 'Valid User');
+    await createTestUser(ctx.knex, 'login-valid@test.example.com', 'password123', 'Valid User');
 
     const res = await request(ctx.app).post('/api/auth/login').send({
       email: 'login-valid@test.example.com',
@@ -85,7 +60,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('returns 401 with wrong password', async () => {
-    await createTestUser('login-wrong@test.example.com', 'password123', 'Wrong User');
+    await createTestUser(ctx.knex, 'login-wrong@test.example.com', 'password123', 'Wrong User');
 
     const res = await request(ctx.app).post('/api/auth/login').send({
       email: 'login-wrong@test.example.com',
@@ -98,7 +73,13 @@ describe('POST /api/auth/login', () => {
   });
 
   it('returns 401 with deactivated user', async () => {
-    await createTestUser('login-inactive@test.example.com', 'password123', 'Inactive User', false);
+    await createTestUser(
+      ctx.knex,
+      'login-inactive@test.example.com',
+      'password123',
+      'Inactive User',
+      false,
+    );
 
     const res = await request(ctx.app).post('/api/auth/login').send({
       email: 'login-inactive@test.example.com',
@@ -107,7 +88,7 @@ describe('POST /api/auth/login', () => {
 
     expect(res.status).toBe(401);
     expect(res.body.success).toBe(false);
-    expect(res.body.message).toBe('Account has been deactivated.');
+    expect(res.body.message).toBe('User account is deactivated.');
   });
 
   it('returns 400 with invalid email format', async () => {
@@ -130,7 +111,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('response contains valid JWT access token', async () => {
-    await createTestUser('login-jwt@test.example.com', 'password123', 'JWT User');
+    await createTestUser(ctx.knex, 'login-jwt@test.example.com', 'password123', 'JWT User');
 
     const res = await request(ctx.app).post('/api/auth/login').send({
       email: 'login-jwt@test.example.com',

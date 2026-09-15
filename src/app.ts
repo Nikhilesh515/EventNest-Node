@@ -1,4 +1,5 @@
 import express, { type Express, type Router } from 'express';
+import cors from 'cors';
 import type { Logger } from 'pino';
 import type { AppConfig } from './config/env.js';
 import { errorHandler } from './shared/http/middleware/error-handler.js';
@@ -18,6 +19,15 @@ export function createApp(deps: AppDependencies): Express {
 
   app.use(requestId());
   app.use(requestLogger(deps.logger));
+  app.use(
+    cors({
+      origin: deps.config.CORS_ORIGINS,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+      exposedHeaders: ['X-Request-Id', 'Location', 'Retry-After'],
+      credentials: false,
+    }),
+  );
   app.use(express.json({ limit: '100kb', strict: true }));
 
   app.get('/health', (_request, response) => {

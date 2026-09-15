@@ -8,7 +8,7 @@ import type { FieldErrors } from '../../../shared/domain/errors.js';
 
 export class EmailAlreadyExistsError extends ConflictError {
   constructor(email: string) {
-    super(`Email '${email}' already exists.`);
+    super(`Email '${email}' already exists.`, { email: [`Email '${email}' already exists.`] });
   }
 }
 
@@ -20,13 +20,13 @@ export class InvalidCredentialsError extends UnauthorizedError {
 
 export class AccountDeactivatedError extends UnauthorizedError {
   constructor() {
-    super('Account has been deactivated.');
+    super('User account is deactivated.');
   }
 }
 
 export class InvalidRefreshTokenError extends UnauthorizedError {
   constructor() {
-    super('Invalid or expired refresh token.');
+    super('Invalid refresh token.');
   }
 }
 

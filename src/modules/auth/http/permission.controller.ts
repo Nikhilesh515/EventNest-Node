@@ -14,6 +14,12 @@ export function createPermissionController(permissionService: PermissionService)
       ok(res, result);
     },
 
+    async check(req: Request, res: Response) {
+      const { userId, permission } = req.query as { userId: string; permission: string };
+      const result = await permissionService.check(userId, permission);
+      ok(res, result);
+    },
+
     async grant(req: Request, res: Response) {
       const { userId, permissionName, expiresAt } = req.body;
       const result = await permissionService.grant(

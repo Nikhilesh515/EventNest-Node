@@ -8,7 +8,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['src/shared/**/*.ts'],
+      include: ['src/shared/**/*.ts', 'src/modules/auth/**/*.ts'],
       thresholds: { lines: 80 },
     },
   },

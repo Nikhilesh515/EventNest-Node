@@ -193,6 +193,49 @@ docs-exp/0008-milestone-ui-parity/
 
 ---
 
+## Code Quality Standards
+
+### Before Every Commit
+
+Run all three checks — no exceptions:
+
+```bash
+npm run typecheck   # no errors
+npm run lint        # no errors
+npm run test        # all tests green
+```
+
+### Type Safety
+
+- **No `as unknown as` casts** — use Zod validation at the edge instead
+- **No `req.user!.id`** — use a guard (`if (!req.user) throw ...`) or typed request interface
+- **Prefer `unknown` over `any`** — if you must use `any`, justify it in a comment
+- **Type exports** — Zod schemas should be typed as `ValidationSchemas`
+
+### Error Handling
+
+- **Controllers: never try-catch** — throw domain errors, let middleware handle
+- **Services: throw domain errors** (NotFoundError, ConflictError, etc.)
+- **Middleware: only catch expected errors** — log unexpected ones, pass as 500
+- **Error handler: only trust `.statusCode` from `AppError`** — never from unknown thrown objects
+
+### Test Conventions
+
+- **Extract shared helpers** to `tests/helpers/` — never duplicate `createTestUser`, `resetTestData`, `createInMemoryCache`, or `testConfig`
+- **Use bcrypt cost 4-6** in tests (not 12 — too slow)
+- **Follow AAA pattern** (Arrange-Act-Assert)
+- **No `console.log` in tests** — use assertions
+- **One test file per endpoint** — `describe('POST /api/auth/login')` maps to the route
+
+### Architecture Rules
+
+- **No try-catch in controllers** (error flow: throw → middleware → envelope)
+- **Validate at the edge** (Zod schemas co-located with routes, before business logic)
+- **Follow existing patterns** (check `src/shared/` for conventions)
+- **Module composition** — wire dependencies in `module.ts`, not in controllers or services
+
+---
+
 ## Context Window Management
 
 When the conversation approaches **400k tokens**, compact the conversation before continuing. This means summarizing the current state (what's built, what's next, any open issues) and starting fresh with the compacted context.

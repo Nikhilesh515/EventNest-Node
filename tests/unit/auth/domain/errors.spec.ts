@@ -108,7 +108,7 @@ describe('AccountDeactivatedError', () => {
   it('has the correct message', () => {
     const err = new AccountDeactivatedError();
 
-    expect(err.message).toBe('Account has been deactivated.');
+    expect(err.message).toBe('User account is deactivated.');
   });
 });
 
@@ -140,7 +140,7 @@ describe('InvalidRefreshTokenError', () => {
   it('has the correct message', () => {
     const err = new InvalidRefreshTokenError();
 
-    expect(err.message).toBe('Invalid or expired refresh token.');
+    expect(err.message).toBe('Invalid refresh token.');
   });
 });
 

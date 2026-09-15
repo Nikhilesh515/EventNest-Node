@@ -1,11 +1,17 @@
 import type { RequestHandler } from 'express';
 import type { CachePort } from '../../application/ports/cache-port.js';
 import { UnauthorizedError, ForbiddenError } from '../../domain/errors.js';
+import { UnexpectedError } from '../../domain/errors.js';
 
 let cacheInstance: CachePort | null = null;
+let resolvePermissions: ((userId: string) => Promise<string[]>) | null = null;
 
 export function setPermissionCache(cache: CachePort): void {
   cacheInstance = cache;
+}
+
+export function setPermissionResolver(resolver: (userId: string) => Promise<string[]>): void {
+  resolvePermissions = resolver;
 }
 
 export function requirePermission(permission: string): RequestHandler {
@@ -23,21 +29,25 @@ export function requirePermission(permission: string): RequestHandler {
     const cacheKey = `user:${req.user.id}:permissions`;
 
     try {
-      const permissions = await cacheInstance.get<string[]>(cacheKey);
+      let permissions = await cacheInstance.get<string[]>(cacheKey);
 
-      if (!permissions) {
-        next(new ForbiddenError('Permission denied.'));
-        return;
+      if (!permissions && resolvePermissions) {
+        permissions = await resolvePermissions(req.user.id);
+        await cacheInstance.set(cacheKey, permissions, 300);
       }
 
-      if (!permissions.includes(permission)) {
+      if (!permissions || !permissions.includes(permission)) {
         next(new ForbiddenError('Permission denied.'));
         return;
       }
 
       next();
-    } catch {
-      next(new ForbiddenError('Permission denied.'));
+    } catch (err) {
+      if (err instanceof ForbiddenError || err instanceof UnauthorizedError) {
+        next(err);
+      } else {
+        next(new UnexpectedError('Permission check failed.'));
+      }
     }
   };
 }

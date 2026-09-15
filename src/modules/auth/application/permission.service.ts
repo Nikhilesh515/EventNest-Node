@@ -16,6 +16,16 @@ import {
 import { NotFoundError } from '../../../shared/domain/errors.js';
 import type { PermissionDto } from './dto/permission.dto.js';
 
+export function computeEffectivePermissions(
+  roleName: string,
+  grants: Array<{ permissionName: string; isExpired: (now: Date) => boolean }>,
+): string[] {
+  const basePerms = basePermissionsForRole(roleName);
+  const now = new Date();
+  const extraPerms = grants.filter((g) => !g.isExpired(now)).map((g) => g.permissionName);
+  return [...new Set([...basePerms, ...extraPerms])];
+}
+
 export class PermissionService {
   constructor(
     private readonly grants: GrantRepository,
@@ -39,12 +49,9 @@ export class PermissionService {
     }
 
     const roleName = user.roleName ?? 'User';
-    const basePerms = basePermissionsForRole(roleName);
     const grants = await this.grants.findActiveByUser(userId);
-    const now = new Date();
-    const extraPerms = grants.filter((g) => !g.isExpired(now)).map((g) => g.permissionName);
-
-    const grantedSet = new Set<string>([...basePerms, ...extraPerms]);
+    const effectivePerms = computeEffectivePermissions(roleName, grants);
+    const grantedSet = new Set<string>(effectivePerms);
 
     return PERMISSION_CATALOG.map((entry) => ({
       name: entry.name,

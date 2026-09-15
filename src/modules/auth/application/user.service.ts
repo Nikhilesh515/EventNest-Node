@@ -25,12 +25,9 @@ export class UserService {
     return this.toDto(user);
   }
 
-  async list(page: number, pageSize: number): Promise<{ users: UserDto[]; total: number }> {
-    const [users, total] = await Promise.all([this.users.list(page, pageSize), this.users.count()]);
-    return {
-      users: users.filter((u) => u.isActive).map((u) => this.toDto(u)),
-      total,
-    };
+  async list(page: number, pageSize: number): Promise<UserDto[]> {
+    const users = await this.users.list(page, pageSize);
+    return users.filter((u) => u.isActive).map((u) => this.toDto(u));
   }
 
   async update(id: string, input: { displayName?: string }): Promise<UserDto> {

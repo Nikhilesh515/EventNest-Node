@@ -1,12 +1,13 @@
 import request from 'supertest';
-import bcrypt from 'bcrypt';
 import crypto from 'node:crypto';
 import { describe, expect, it, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
   getSharedTestApp,
   destroySharedTestApp,
+  resetTestData,
   type TestAppContext,
-} from '../../helpers/auth-global.js';
+} from '../../helpers/test-setup.js';
+import { createTestUser, registerUser } from '../../helpers/auth-helpers.js';
 
 let ctx: TestAppContext;
 
@@ -19,53 +20,13 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await ctx.knex('refresh_tokens').del();
-  await ctx.knex('permission_grants').del();
-  await ctx.knex('users').where('email', 'like', '%@test.example.com').del();
+  await resetTestData(ctx.knex);
 });
-
-async function createTestUser(
-  email: string,
-  password: string,
-  displayName: string,
-): Promise<{ id: string }> {
-  const role = await ctx.knex('roles').where('name', 'User').first();
-  const passwordHash = await bcrypt.hash(password, 12);
-  const [user] = await ctx
-    .knex('users')
-    .insert({
-      id: crypto.randomUUID(),
-      email,
-      display_name: displayName,
-      password_hash: passwordHash,
-      role_id: role!.id,
-      is_active: true,
-      created_at: new Date(),
-      updated_at: new Date(),
-    })
-    .returning('id');
-  return user;
-}
-
-async function registerUser(
-  email: string,
-  password: string,
-  displayName: string,
-): Promise<{ refreshToken: string; accessToken: string }> {
-  const res = await request(ctx.app).post('/api/auth/register').send({
-    email,
-    password,
-    displayName,
-  });
-  return {
-    refreshToken: res.body.result.refreshToken,
-    accessToken: res.body.result.accessToken,
-  };
-}
 
 describe('POST /api/auth/refresh', () => {
   it('returns 200 with new token pair on valid token', async () => {
     const tokens = await registerUser(
+      ctx.app,
       'refresh-valid@test.example.com',
       'password123',
       'Refresh User',
@@ -89,6 +50,7 @@ describe('POST /api/auth/refresh', () => {
 
   it('returns 401 with expired token', async () => {
     const user = await createTestUser(
+      ctx.knex,
       'refresh-expired@test.example.com',
       'password123',
       'Expired User',
@@ -110,11 +72,12 @@ describe('POST /api/auth/refresh', () => {
     });
 
     expect(res.status).toBe(401);
-    expect(res.body.message).toBe('Invalid or expired refresh token.');
+    expect(res.body.message).toBe('Invalid refresh token.');
   });
 
   it('returns 401 with revoked token', async () => {
     const tokens = await registerUser(
+      ctx.app,
       'refresh-revoked@test.example.com',
       'password123',
       'Revoked User',
@@ -129,7 +92,7 @@ describe('POST /api/auth/refresh', () => {
     });
 
     expect(res.status).toBe(401);
-    expect(res.body.message).toBe('Invalid or expired refresh token.');
+    expect(res.body.message).toBe('Invalid refresh token.');
   });
 
   it('returns 401 with completely unknown token', async () => {
@@ -138,7 +101,7 @@ describe('POST /api/auth/refresh', () => {
     });
 
     expect(res.status).toBe(401);
-    expect(res.body.message).toBe('Invalid or expired refresh token.');
+    expect(res.body.message).toBe('Invalid refresh token.');
   });
 
   it('returns 400 with empty refreshToken', async () => {
@@ -152,6 +115,7 @@ describe('POST /api/auth/refresh', () => {
 
   it('invalidates the old refresh token after rotation', async () => {
     const tokens = await registerUser(
+      ctx.app,
       'refresh-invalidate@test.example.com',
       'password123',
       'Invalidate User',

@@ -23,7 +23,7 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
       return;
     }
 
-    logger.error({ requestId, err, statusCode: 500 }, 'unhandled error');
+    logger.error({ requestId, err }, 'unhandled error');
     fail(res, 500, 'An unexpected error occurred.', null);
   };
 }

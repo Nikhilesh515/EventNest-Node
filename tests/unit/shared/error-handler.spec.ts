@@ -65,7 +65,7 @@ describe('TC-CORE-015: Logging rules for 4xx and 5xx', () => {
     const error = logger.error as unknown as ReturnType<typeof vi.fn>;
     const [fields] = error.mock.calls[0] as [Record<string, unknown>];
 
-    expect(fields).toMatchObject({ requestId: 'req-1', statusCode: 500 });
+    expect(fields).toMatchObject({ requestId: 'req-1' });
     expect(fields.err).toBe(root);
   });
 });

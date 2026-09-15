@@ -11,11 +11,14 @@ import {
 } from './infrastructure/index.js';
 import { AuthService, type AuthServiceConfig } from './application/auth.service.js';
 import { UserService } from './application/user.service.js';
-import { PermissionService } from './application/permission.service.js';
+import { PermissionService, computeEffectivePermissions } from './application/permission.service.js';
 import { createAuthRoutes } from './http/auth.routes.js';
 import { createUserRoutes } from './http/user.routes.js';
 import { createPermissionRoutes } from './http/permission.routes.js';
-import { setPermissionCache } from '../../shared/http/middleware/require-permission.js';
+import {
+  setPermissionCache,
+  setPermissionResolver,
+} from '../../shared/http/middleware/require-permission.js';
 
 export interface AuthModuleDeps {
   knex: Knex;
@@ -53,6 +56,13 @@ export function buildAuthModule(deps: AuthModuleDeps) {
   const permissionProvider = new PermissionProviderAdapter(cache, grantRepo, userRepo);
 
   setPermissionCache(cache);
+
+  setPermissionResolver(async (userId: string) => {
+    const user = await userRepo.findById(userId);
+    if (!user) return [];
+    const grants = await grantRepo.findActiveByUser(userId);
+    return computeEffectivePermissions(user.roleName ?? 'User', grants);
+  });
 
   const authRouter = createAuthRoutes(authService);
   const userRouter = createUserRoutes(userService);

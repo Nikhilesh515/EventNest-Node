@@ -21,6 +21,8 @@ export default tseslint.config(
         'error',
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
       ],
+      '@typescript-eslint/consistent-type-assertions': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
     },
   },
 );
