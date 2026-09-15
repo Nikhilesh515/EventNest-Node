@@ -12,6 +12,10 @@ import { errorHandler } from '../../src/shared/http/middleware/error-handler.js'
 import { notFound } from '../../src/shared/http/middleware/not-found.js';
 import { requestId } from '../../src/shared/http/middleware/request-id.js';
 import { requestLogger } from '../../src/shared/http/middleware/request-logger.js';
+import { securityHeaders } from '../../src/shared/http/middleware/helmet.js';
+import { compress } from '../../src/shared/http/middleware/compress.js';
+import { healthHandler } from '../../src/shared/http/health.js';
+import { mountApiDocs } from '../../src/shared/http/openapi/serve.js';
 import type { CachePort } from '../../src/shared/application/ports/cache-port.js';
 import { loadConfig, type AppConfig } from '../../src/config/env.js';
 
@@ -108,13 +112,15 @@ export async function getSharedTestApp(): Promise<TestAppContext> {
 
   const app = express();
   app.disable('x-powered-by');
+  app.set('trust proxy', true);
   app.use(requestId());
   app.use(requestLogger(logger));
+  app.use(securityHeaders());
+  app.use(compress());
   app.use(express.json({ limit: '100kb', strict: true }));
 
-  app.get('/health', (_req, res) => {
-    res.status(200).json({ status: 'Healthy', checks: [] });
-  });
+  app.get('/health', healthHandler({ knex, redisClient: null }));
+  mountApiDocs(app, false);
 
   for (const modRouter of authModule.routers) {
     app.use(modRouter);

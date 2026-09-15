@@ -6,7 +6,8 @@ import { createLogger } from './shared/infrastructure/logger.js';
 import { exitAfterFlush } from './shared/infrastructure/exit.js';
 import { registerShutdownHandlers } from './shared/infrastructure/shutdown.js';
 import { buildKnex, destroyKnex } from './shared/infrastructure/db/knex.js';
-import { createCache } from './shared/infrastructure/cache/create-cache.js';
+import { createCache, createRedisClient } from './shared/infrastructure/cache/create-cache.js';
+import { buildRateLimiter } from './shared/http/middleware/rate-limiter.js';
 import { buildAuthModule } from './modules/auth/module.js';
 import { buildTagsModule } from './modules/tags/module.js';
 import { buildEventsModule } from './modules/events/module.js';
@@ -72,7 +73,16 @@ function bootstrap(): void {
     router.use(modRouter);
   }
 
-  const app = createApp({ config, logger, router });
+  const rateLimiter = buildRateLimiter(config.RATE_LIMIT_PER_MINUTE);
+  const redisClient = config.REDIS_URL ? createRedisClient(config.REDIS_URL, logger) : null;
+
+  const app = createApp({
+    config,
+    logger,
+    router,
+    rateLimiter,
+    health: { knex, redisClient },
+  });
 
   const server = app.listen(config.PORT, () => {
     logger.info({ port: config.PORT, env: config.NODE_ENV }, 'eventnest-api listening');
@@ -88,6 +98,10 @@ function bootstrap(): void {
   });
 
   registerShutdownHandlers(server, logger, async () => {
+    if (redisClient) {
+      await redisClient.quit();
+      logger.info('redis connection closed');
+    }
     await cache.close();
     logger.info('cache connection closed');
     await destroyKnex(knex);

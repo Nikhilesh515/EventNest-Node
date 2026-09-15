@@ -1,4 +1,47 @@
+# ============================================================
+# EventNest -- local stack: api + postgres + redis
+#   Start infra only:  docker compose up -d postgres redis
+#   Start everything:  docker compose up --build
+#   Stop:              docker compose down
+#   Logs:              docker compose logs -f api
+# ============================================================
+name: eventnest
+
 services:
+  # ----------------------------------------------------------
+  # Application -- one Express process, all modules
+  # ----------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: eventnest-api:local
+    ports:
+      - '5000:5000'
+    environment:
+      NODE_ENV: production
+      PORT: '5000'
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/eventnest
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me-32-chars-min}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:5000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      start_period: 15s
+      retries: 3
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  # Database -- the single application database
+  # ----------------------------------------------------------
   postgres:
     image: postgres:15-alpine
     ports:
@@ -17,11 +60,14 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  # ----------------------------------------------------------
+  # Cache -- permission cache only; disposable data
+  # ----------------------------------------------------------
   redis:
     image: redis:7-alpine
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save ""
     ports:
       - '6379:6379'
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save ""
     volumes:
       - redis-data:/data
     healthcheck:
