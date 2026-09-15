@@ -1,0 +1,97 @@
+import type { Express } from 'express';
+import express from 'express';
+import { pino, type Logger } from 'pino';
+import type { Knex } from 'knex';
+import { loadConfig, type AppConfig } from '../../src/config/env.js';
+import { buildKnex, destroyKnex } from '../../src/shared/infrastructure/db/knex.js';
+import { buildAuthModule } from '../../src/modules/auth/module.js';
+import { errorHandler } from '../../src/shared/http/middleware/error-handler.js';
+import { notFound } from '../../src/shared/http/middleware/not-found.js';
+import { requestId } from '../../src/shared/http/middleware/request-id.js';
+import { requestLogger } from '../../src/shared/http/middleware/request-logger.js';
+import type { CachePort } from '../../src/shared/application/ports/cache-port.js';
+
+export function testConfig(overrides: Record<string, string> = {}): AppConfig {
+  return loadConfig({
+    NODE_ENV: 'test',
+    DATABASE_URL: 'postgres://postgres:postgres@localhost:5433/eventnest_test',
+    JWT_SECRET: 'test-secret-value-0123456789abcdef',
+    JWT_ISSUER: 'EventNest.AuthService',
+    JWT_AUDIENCE: 'EventNest',
+    JWT_ACCESS_EXPIRY_MINUTES: '60',
+    JWT_REFRESH_EXPIRY_DAYS: '30',
+    LOG_LEVEL: 'silent',
+    ...overrides,
+  } as NodeJS.ProcessEnv);
+}
+
+export function testLogger(): Logger {
+  return pino({ level: 'silent' });
+}
+
+function createInMemoryCache(): CachePort {
+  const store = new Map<string, { value: unknown; expiresAt: number | null }>();
+
+  return {
+    async get<T>(key: string): Promise<T | null> {
+      const entry = store.get(key);
+      if (!entry) return null;
+      if (entry.expiresAt && Date.now() > entry.expiresAt) {
+        store.delete(key);
+        return null;
+      }
+      return entry.value as T;
+    },
+    async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
+      const expiresAt = ttlSeconds ? Date.now() + ttlSeconds * 1000 : null;
+      store.set(key, { value, expiresAt });
+    },
+    async delete(key: string): Promise<void> {
+      store.delete(key);
+    },
+    async close(): Promise<void> {
+      store.clear();
+    },
+  };
+}
+
+export interface TestAppContext {
+  app: Express;
+  knex: Knex;
+  config: AppConfig;
+  logger: Logger;
+  cache: CachePort;
+}
+
+export async function buildTestApp(): Promise<TestAppContext> {
+  const config = testConfig();
+  const logger = testLogger();
+  const knex = buildKnex(config.DATABASE_URL);
+  const cache = createInMemoryCache();
+
+  const authModule = buildAuthModule({ knex, config, logger, cache });
+
+  const app = express();
+  app.disable('x-powered-by');
+  app.use(requestId());
+  app.use(requestLogger(logger));
+  app.use(express.json({ limit: '100kb', strict: true }));
+
+  app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'Healthy', checks: [] });
+  });
+
+  for (const router of authModule.routers) {
+    app.use(router);
+  }
+
+  app.use(notFound());
+  app.use(errorHandler(logger));
+
+  return { app, knex, config, logger, cache };
+}
+
+export async function destroyTestApp(ctx: TestAppContext): Promise<void> {
+  await ctx.cache.close();
+  await destroyKnex(ctx.knex);
+}

@@ -48,6 +48,28 @@ export const ROLE_DEFAULTS: Record<string, readonly PermissionName[]> = {
   Moderator: [...ORGANIZER_DEFAULTS, PERMISSIONS.Users.View],
 };
 
+export interface PermissionCatalogEntry {
+  name: PermissionName;
+  displayName: string;
+  group: string;
+}
+
+function buildCatalog(): PermissionCatalogEntry[] {
+  const entries: PermissionCatalogEntry[] = [];
+  for (const [group, perms] of Object.entries(PERMISSIONS)) {
+    for (const [key, value] of Object.entries(perms)) {
+      entries.push({
+        name: value,
+        displayName: `${group} ${key}`,
+        group,
+      });
+    }
+  }
+  return entries;
+}
+
+export const PERMISSION_CATALOG: readonly PermissionCatalogEntry[] = buildCatalog();
+
 const FULL_ACCESS_ROLES = new Set(['Admin', 'SuperAdmin']);
 const PERMISSION_NAMES = new Set<string>(ALL_PERMISSIONS);
 
