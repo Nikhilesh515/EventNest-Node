@@ -74,7 +74,10 @@ export class EventService implements EventLookupPort {
       this.events.count(countFilters),
     ]);
 
-    const enriched = await Promise.all(items.map((e) => this.toDto(e)));
+    const goingCounts = this.rsvpStats
+      ? await this.rsvpStats.getGoingCounts(items.map((e) => e.id))
+      : {};
+    const enriched = await Promise.all(items.map((e) => this.toDto(e, goingCounts[e.id] ?? 0)));
 
     return {
       items: enriched,
@@ -106,7 +109,10 @@ export class EventService implements EventLookupPort {
       }
     }
 
-    return this.toDto(event);
+    const goingCounts = this.rsvpStats
+      ? await this.rsvpStats.getGoingCounts([event.id])
+      : {};
+    return this.toDto(event, goingCounts[event.id] ?? 0);
   }
 
   async update(id: string, input: UpdateEventInput, userId: string): Promise<EventDto> {
@@ -199,7 +205,7 @@ export class EventService implements EventLookupPort {
     }
   }
 
-  private async toDto(event: Event): Promise<EventDto> {
+  private async toDto(event: Event, goingCount = 0): Promise<EventDto> {
     const tagDtos = await Promise.all(
       event.tags.map(async (t) => {
         const summaries = await this.tags.getTags([t.tagId]);
@@ -216,6 +222,7 @@ export class EventService implements EventLookupPort {
       startsAt: event.startsAt.toISOString(),
       endsAt: event.endsAt.toISOString(),
       capacity: event.capacity,
+      goingCount,
       organizerId: event.organizerId,
       organizerName: event.organizerName,
       status: event.status,

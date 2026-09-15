@@ -12,6 +12,7 @@ export interface EventDto {
   startsAt: string;
   endsAt: string;
   capacity: number;
+  goingCount: number;
   organizerId: string;
   organizerName: string;
   status: string;

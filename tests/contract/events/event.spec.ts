@@ -192,6 +192,45 @@ describe('GET /api/events', () => {
     const statuses = res.body.result.items.map((e: { status: string }) => e.status);
     expect(statuses.every((s: string) => s === 'Published')).toBe(true);
   });
+
+  it('TC-EVT-014: authenticated admin sees non-published statuses', async () => {
+    await request(ctx.app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ ...validEvent, title: 'Draft Visibility Check' });
+
+    const res = await request(ctx.app)
+      .get('/api/events?status=Draft')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    const statuses = res.body.result.items.map((e: { status: string }) => e.status);
+    expect(statuses.length).toBeGreaterThanOrEqual(1);
+    expect(statuses.every((s: string) => s === 'Draft')).toBe(true);
+  });
+
+  it('TC-EVT-015: list items include goingCount', async () => {
+    const createRes = await request(ctx.app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ ...validEvent, title: 'Going Count Check' });
+
+    await request(ctx.app)
+      .put(`/api/events/${createRes.body.result.id}/publish`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    await request(ctx.app)
+      .post(`/api/events/${createRes.body.result.id}/rsvps`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ guestCount: 2 });
+
+    const res = await request(ctx.app)
+      .get('/api/events?search=Going Count Check')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.result.items[0].goingCount).toBe(2);
+  });
 });
 
 describe('GET /api/events/my', () => {

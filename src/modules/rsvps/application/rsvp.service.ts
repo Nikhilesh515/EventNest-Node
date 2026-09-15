@@ -117,12 +117,12 @@ export class RsvpService implements RsvpStatsPort {
 
   async listByEvent(eventId: string): Promise<RsvpDetailDto[]> {
     const items = await this.rsvps.listByEventWithEventTitle(eventId);
-    return items.map((i) => this.toDetailDto(i.rsvp, i.eventTitle));
+    return items.map((i) => this.toDetailDto(i.rsvp, i.eventTitle, i.eventStartsAt, i.eventLocation));
   }
 
   async listByUser(userId: string): Promise<RsvpDetailDto[]> {
     const items = await this.rsvps.listByUserWithEventTitle(userId);
-    return items.map((i) => this.toDetailDto(i.rsvp, i.eventTitle));
+    return items.map((i) => this.toDetailDto(i.rsvp, i.eventTitle, i.eventStartsAt, i.eventLocation));
   }
 
   async getGoingCounts(eventIds: string[]): Promise<Record<string, number>> {
@@ -144,7 +144,17 @@ export class RsvpService implements RsvpStatsPort {
     };
   }
 
-  private toDetailDto(rsvp: Rsvp, eventTitle: string | null): RsvpDetailDto {
-    return { ...this.toDto(rsvp), eventTitle };
+  private toDetailDto(
+    rsvp: Rsvp,
+    eventTitle: string | null,
+    eventStartsAt: Date | null,
+    eventLocation: string | null,
+  ): RsvpDetailDto {
+    return {
+      ...this.toDto(rsvp),
+      eventTitle,
+      eventStartsAt: eventStartsAt ? eventStartsAt.toISOString() : null,
+      eventLocation,
+    };
   }
 }

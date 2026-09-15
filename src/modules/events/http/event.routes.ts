@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { validate } from '../../../shared/http/middleware/validate.js';
 import { requireAuth } from '../../../shared/http/middleware/require-auth.js';
 import { requirePermission } from '../../../shared/http/middleware/require-permission.js';
+import { attachUserIfPresent } from '../../../shared/http/middleware/attach-user-if-present.js';
 import { PERMISSIONS } from '../../../shared/application/permissions.js';
 import {
   createEventSchema,
@@ -17,6 +18,7 @@ export function createEventRoutes(eventService: Parameters<typeof createEventCon
 
   router.get(
     '/api/events',
+    attachUserIfPresent,
     validate(eventListQuerySchema),
     (req, res) => controller.list(req, res),
   );

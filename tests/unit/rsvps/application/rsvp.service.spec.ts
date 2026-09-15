@@ -56,11 +56,11 @@ function createMockRepo(): RsvpRepository {
     }),
     listByEventWithEventTitle: vi.fn(async (eventId: string) => {
       const rsvps = Array.from(store.values()).filter((r) => r.eventId === eventId);
-      return rsvps.map((r) => ({ rsvp: r, eventTitle: 'Test Event' }));
+      return rsvps.map((r) => ({ rsvp: r, eventTitle: 'Test Event', eventStartsAt: new Date(), eventLocation: 'Test Location' }));
     }),
     listByUserWithEventTitle: vi.fn(async (userId: string) => {
       const rsvps = Array.from(store.values()).filter((r) => r.userId === userId);
-      return rsvps.map((r) => ({ rsvp: r, eventTitle: 'Test Event' }));
+      return rsvps.map((r) => ({ rsvp: r, eventTitle: 'Test Event', eventStartsAt: new Date(), eventLocation: 'Test Location' }));
     }),
   };
 }

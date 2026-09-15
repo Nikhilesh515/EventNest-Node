@@ -3,6 +3,8 @@ import type { Rsvp } from '../domain/rsvp.js';
 export interface RsvpWithEventTitle {
   rsvp: Rsvp;
   eventTitle: string | null;
+  eventStartsAt: Date | null;
+  eventLocation: string | null;
 }
 
 export interface RsvpRepository {

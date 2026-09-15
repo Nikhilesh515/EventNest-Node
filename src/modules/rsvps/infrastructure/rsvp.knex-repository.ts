@@ -109,12 +109,14 @@ export class KnexRsvpRepository implements RsvpRepository {
     const rows = await this.knex('rsvps as r')
       .leftJoin('events as e', 'e.id', 'r.event_id')
       .where('r.event_id', eventId)
-      .select('r.*', 'e.title as event_title')
+      .select('r.*', 'e.title as event_title', 'e.starts_at as event_starts_at', 'e.location as event_location')
       .orderBy('r.created_at', 'asc');
 
     return rows.map((row) => ({
       rsvp: Rsvp.reconstitute(rowToProps(row as Record<string, unknown>)),
       eventTitle: (row.event_title as string) ?? null,
+      eventStartsAt: (row.event_starts_at as Date) ?? null,
+      eventLocation: (row.event_location as string) ?? null,
     }));
   }
 
@@ -122,12 +124,14 @@ export class KnexRsvpRepository implements RsvpRepository {
     const rows = await this.knex('rsvps as r')
       .leftJoin('events as e', 'e.id', 'r.event_id')
       .where('r.user_id', userId)
-      .select('r.*', 'e.title as event_title')
+      .select('r.*', 'e.title as event_title', 'e.starts_at as event_starts_at', 'e.location as event_location')
       .orderBy('r.created_at', 'desc');
 
     return rows.map((row) => ({
       rsvp: Rsvp.reconstitute(rowToProps(row as Record<string, unknown>)),
       eventTitle: (row.event_title as string) ?? null,
+      eventStartsAt: (row.event_starts_at as Date) ?? null,
+      eventLocation: (row.event_location as string) ?? null,
     }));
   }
 }

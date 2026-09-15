@@ -39,6 +39,7 @@ export class PermissionService {
       displayName: entry.displayName,
       group: entry.group,
       isGranted: false,
+      source: 'none',
     }));
   }
 
@@ -49,16 +50,27 @@ export class PermissionService {
     }
 
     const roleName = user.roleName ?? 'User';
+    const basePerms = new Set<string>(basePermissionsForRole(roleName));
     const grants = await this.grants.findActiveByUser(userId);
+    const directGrants = new Set<string>(
+      grants.filter((g) => !g.isExpired(new Date())).map((g) => g.permissionName),
+    );
     const effectivePerms = computeEffectivePermissions(roleName, grants);
     const grantedSet = new Set<string>(effectivePerms);
 
-    return PERMISSION_CATALOG.map((entry) => ({
-      name: entry.name,
-      displayName: entry.displayName,
-      group: entry.group,
-      isGranted: grantedSet.has(entry.name),
-    }));
+    return PERMISSION_CATALOG.map((entry) => {
+      let source: PermissionDto['source'] = 'none';
+      if (grantedSet.has(entry.name)) {
+        source = directGrants.has(entry.name) ? 'direct-grant' : 'role-default';
+      }
+      return {
+        name: entry.name,
+        displayName: entry.displayName,
+        group: entry.group,
+        isGranted: grantedSet.has(entry.name),
+        source,
+      };
+    });
   }
 
   async grant(userId: string, permissionName: string, expiresAt?: Date): Promise<PermissionDto> {
@@ -93,6 +105,7 @@ export class PermissionService {
       displayName: entry.displayName,
       group: entry.group,
       isGranted: true,
+      source: 'direct-grant',
     };
   }
 

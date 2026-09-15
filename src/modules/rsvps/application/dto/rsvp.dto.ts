@@ -13,6 +13,8 @@ export interface RsvpDto {
 
 export interface RsvpDetailDto extends RsvpDto {
   eventTitle: string | null;
+  eventStartsAt: string | null;
+  eventLocation: string | null;
 }
 
 export interface CreateRsvpInput {
