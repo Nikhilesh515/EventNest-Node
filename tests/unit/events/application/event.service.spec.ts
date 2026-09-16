@@ -5,7 +5,10 @@ import type { TagLookupPort } from '../../../../src/modules/tags/application/por
 import type { UserLookupPort } from '../../../../src/modules/auth/application/ports/user-lookup.port.js';
 import type { TagSummary } from '../../../../src/modules/tags/application/ports/tag-lookup.port.js';
 import { NotFoundError, ForbiddenError } from '../../../../src/shared/domain/errors.js';
-import { DuplicateEventTitleError, InvalidTagError } from '../../../../src/modules/events/domain/errors.js';
+import {
+  DuplicateEventTitleError,
+  InvalidTagError,
+} from '../../../../src/modules/events/domain/errors.js';
 import type { Event } from '../../../../src/modules/events/domain/event.js';
 
 function createMockRepo(): EventRepository {

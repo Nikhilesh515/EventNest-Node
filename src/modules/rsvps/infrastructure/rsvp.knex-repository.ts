@@ -67,16 +67,12 @@ export class KnexRsvpRepository implements RsvpRepository {
   }
 
   async listByEvent(eventId: string): Promise<Rsvp[]> {
-    const rows = await this.knex('rsvps')
-      .where({ event_id: eventId })
-      .orderBy('created_at', 'asc');
+    const rows = await this.knex('rsvps').where({ event_id: eventId }).orderBy('created_at', 'asc');
     return rows.map((row) => Rsvp.reconstitute(rowToProps(row)));
   }
 
   async listByUser(userId: string): Promise<Rsvp[]> {
-    const rows = await this.knex('rsvps')
-      .where({ user_id: userId })
-      .orderBy('created_at', 'desc');
+    const rows = await this.knex('rsvps').where({ user_id: userId }).orderBy('created_at', 'desc');
     return rows.map((row) => Rsvp.reconstitute(rowToProps(row)));
   }
 
@@ -120,7 +116,12 @@ export class KnexRsvpRepository implements RsvpRepository {
     const rows = await this.knex('rsvps as r')
       .leftJoin('events as e', 'e.id', 'r.event_id')
       .where('r.event_id', eventId)
-      .select('r.*', 'e.title as event_title', 'e.starts_at as event_starts_at', 'e.location as event_location')
+      .select(
+        'r.*',
+        'e.title as event_title',
+        'e.starts_at as event_starts_at',
+        'e.location as event_location',
+      )
       .orderBy('r.created_at', 'asc');
 
     return rows.map((row) => ({
@@ -135,7 +136,12 @@ export class KnexRsvpRepository implements RsvpRepository {
     const rows = await this.knex('rsvps as r')
       .leftJoin('events as e', 'e.id', 'r.event_id')
       .where('r.user_id', userId)
-      .select('r.*', 'e.title as event_title', 'e.starts_at as event_starts_at', 'e.location as event_location')
+      .select(
+        'r.*',
+        'e.title as event_title',
+        'e.starts_at as event_starts_at',
+        'e.location as event_location',
+      )
       .orderBy('r.created_at', 'desc');
 
     return rows.map((row) => ({

@@ -1,11 +1,6 @@
 export type RsvpStatus = 'Confirmed' | 'Maybe' | 'Declined' | 'Cancelled';
 
-export const RSVP_STATUSES: readonly RsvpStatus[] = [
-  'Confirmed',
-  'Maybe',
-  'Declined',
-  'Cancelled',
-];
+export const RSVP_STATUSES: readonly RsvpStatus[] = ['Confirmed', 'Maybe', 'Declined', 'Cancelled'];
 
 export interface RsvpProps {
   id: string;

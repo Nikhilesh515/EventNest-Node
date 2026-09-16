@@ -154,9 +154,7 @@ describe('POST /api/events/:eventId/rsvps', () => {
 
   it('TC-RSVP-007: returns 401 without auth', async () => {
     const eventId = await createPublishedEvent(adminToken);
-    const res = await request(ctx.app)
-      .post(`/api/events/${eventId}/rsvps`)
-      .send({ guestCount: 1 });
+    const res = await request(ctx.app).post(`/api/events/${eventId}/rsvps`).send({ guestCount: 1 });
 
     expect(res.status).toBe(401);
   });

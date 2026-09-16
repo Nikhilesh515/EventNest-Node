@@ -29,7 +29,10 @@ export function createUserController(userService: UserService) {
     async update(req: Request, res: Response) {
       const id = req.params.id as string;
       const body = req.body as { displayName?: string };
-      const result = await userService.update(id, body.displayName !== undefined ? { displayName: body.displayName } : {});
+      const result = await userService.update(
+        id,
+        body.displayName !== undefined ? { displayName: body.displayName } : {},
+      );
       ok(res, result);
     },
 

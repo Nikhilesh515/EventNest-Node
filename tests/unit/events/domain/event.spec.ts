@@ -16,9 +16,7 @@ describe('Event Entity', () => {
   describe('create()', () => {
     it('generates a UUID id', () => {
       const event = Event.create(validInput);
-      expect(event.id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      );
+      expect(event.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     });
 
     it('defaults status to Draft', () => {

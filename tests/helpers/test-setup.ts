@@ -155,7 +155,11 @@ export async function resetTestData(knex: Knex): Promise<void> {
   await knex('permission_grants').del();
   await knex('rsvps').del();
   await knex('event_tags').del();
-  await knex('events').whereNotIn('title', ['Tech Meetup 2026', 'Food Festival', 'Music Concert']).del();
+  await knex('events')
+    .whereNotIn('title', ['Tech Meetup 2026', 'Food Festival', 'Music Concert'])
+    .del();
   await knex('users').where('email', 'like', '%@test.example.com').del();
-  await knex('tags').whereNotIn('name', ['Technology', 'Music', 'Food & Drink', 'Sports', 'Networking']).del();
+  await knex('tags')
+    .whereNotIn('name', ['Technology', 'Music', 'Food & Drink', 'Sports', 'Networking'])
+    .del();
 }

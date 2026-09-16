@@ -23,13 +23,11 @@ beforeEach(async () => {
 
 describe('POST /api/auth/register', () => {
   it('returns 200 with AuthResponseDto on valid input', async () => {
-    const res = await request(ctx.app)
-      .post('/api/auth/register')
-      .send({
-        email: 'register-success@test.example.com',
-        password: 'password123',
-        displayName: 'Test User',
-      });
+    const res = await request(ctx.app).post('/api/auth/register').send({
+      email: 'register-success@test.example.com',
+      password: 'password123',
+      displayName: 'Test User',
+    });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
@@ -103,13 +101,11 @@ describe('POST /api/auth/register', () => {
   });
 
   it('response has correct shape with all required fields', async () => {
-    const res = await request(ctx.app)
-      .post('/api/auth/register')
-      .send({
-        email: 'shape@test.example.com',
-        password: 'password123',
-        displayName: 'Shape Test',
-      });
+    const res = await request(ctx.app).post('/api/auth/register').send({
+      email: 'shape@test.example.com',
+      password: 'password123',
+      displayName: 'Shape Test',
+    });
 
     expect(res.status).toBe(200);
 
@@ -133,13 +129,11 @@ describe('POST /api/auth/register', () => {
   });
 
   it('returns a valid JWT access token', async () => {
-    const res = await request(ctx.app)
-      .post('/api/auth/register')
-      .send({
-        email: 'jwt@test.example.com',
-        password: 'password123',
-        displayName: 'JWT Test',
-      });
+    const res = await request(ctx.app).post('/api/auth/register').send({
+      email: 'jwt@test.example.com',
+      password: 'password123',
+      displayName: 'JWT Test',
+    });
 
     const token = res.body.result.accessToken;
     const parts = token.split('.');

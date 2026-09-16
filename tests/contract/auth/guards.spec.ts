@@ -68,9 +68,7 @@ afterAll(() => {
   delete process.env.JWT_AUDIENCE;
 });
 
-function buildGuardTestApp(
-  middlewares: express.RequestHandler[],
-): express.Express {
+function buildGuardTestApp(middlewares: express.RequestHandler[]): express.Express {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json());
@@ -123,9 +121,7 @@ describe('requireAuth guard', () => {
       jti: 'jti-123',
     });
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/guarded').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.result.user).toEqual({
@@ -157,9 +153,7 @@ describe('requireAuth guard', () => {
       },
     );
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/guarded').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(401);
   });
@@ -180,9 +174,7 @@ describe('requirePermission guard', () => {
   it('returns 403 when user has no permissions in cache', async () => {
     const cache = createInMemoryCache();
     setPermissionCache(cache);
-    const app = buildGuardTestApp(
-      [requireAuth, requirePermission('Events.View')],
-    );
+    const app = buildGuardTestApp([requireAuth, requirePermission('Events.View')]);
 
     const token = generateToken({
       sub: 'user-456',
@@ -192,9 +184,7 @@ describe('requirePermission guard', () => {
       jti: 'jti-456',
     });
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/guarded').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(403);
     expect(res.body.success).toBe(false);
@@ -204,9 +194,7 @@ describe('requirePermission guard', () => {
     const cache = createInMemoryCache();
     await cache.set('user:user-789:permissions', ['Events.View', 'Tags.View'], 300);
     setPermissionCache(cache);
-    const app = buildGuardTestApp(
-      [requireAuth, requirePermission('Events.View')],
-    );
+    const app = buildGuardTestApp([requireAuth, requirePermission('Events.View')]);
 
     const token = generateToken({
       sub: 'user-789',
@@ -216,9 +204,7 @@ describe('requirePermission guard', () => {
       jti: 'jti-789',
     });
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/guarded').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.result.user).toBeDefined();
@@ -228,9 +214,7 @@ describe('requirePermission guard', () => {
     const cache = createInMemoryCache();
     await cache.set('user:user-999:permissions', ['Tags.View'], 300);
     setPermissionCache(cache);
-    const app = buildGuardTestApp(
-      [requireAuth, requirePermission('Events.View')],
-    );
+    const app = buildGuardTestApp([requireAuth, requirePermission('Events.View')]);
 
     const token = generateToken({
       sub: 'user-999',
@@ -240,9 +224,7 @@ describe('requirePermission guard', () => {
       jti: 'jti-999',
     });
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/guarded').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(403);
     expect(res.body.success).toBe(false);
@@ -250,9 +232,7 @@ describe('requirePermission guard', () => {
 
   it('returns 403 when no permission cache is configured', async () => {
     setPermissionCache(null as unknown as CachePort);
-    const app = buildGuardTestApp(
-      [requireAuth, requirePermission('Events.View')],
-    );
+    const app = buildGuardTestApp([requireAuth, requirePermission('Events.View')]);
 
     const token = generateToken({
       sub: 'user-nocache',
@@ -262,9 +242,7 @@ describe('requirePermission guard', () => {
       jti: 'jti-nocache',
     });
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/guarded').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(403);
     expect(res.body.success).toBe(false);
@@ -276,9 +254,7 @@ describe('requirePermission guard', () => {
     const cache = createInMemoryCache();
     setPermissionCache(cache);
     setPermissionResolver(async () => ['Events.View']);
-    const app = buildGuardTestApp(
-      [requireAuth, requirePermission('Events.View')],
-    );
+    const app = buildGuardTestApp([requireAuth, requirePermission('Events.View')]);
 
     const token = generateToken({
       sub: 'user-miss',
@@ -288,9 +264,7 @@ describe('requirePermission guard', () => {
       jti: 'jti-miss',
     });
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/guarded').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(await cache.get<string[]>('user:user-miss:permissions')).toEqual(['Events.View']);
@@ -302,9 +276,7 @@ describe('requirePermission guard', () => {
     setPermissionResolver(async () => {
       throw new ForbiddenError('Permission denied.');
     });
-    const app = buildGuardTestApp(
-      [requireAuth, requirePermission('Events.View')],
-    );
+    const app = buildGuardTestApp([requireAuth, requirePermission('Events.View')]);
 
     const token = generateToken({
       sub: 'user-throw-domain',
@@ -314,9 +286,7 @@ describe('requirePermission guard', () => {
       jti: 'jti-throw-domain',
     });
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/guarded').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(403);
   });
@@ -327,9 +297,7 @@ describe('requirePermission guard', () => {
     setPermissionResolver(async () => {
       throw new Error('boom');
     });
-    const app = buildGuardTestApp(
-      [requireAuth, requirePermission('Events.View')],
-    );
+    const app = buildGuardTestApp([requireAuth, requirePermission('Events.View')]);
 
     const token = generateToken({
       sub: 'user-throw-unexpected',
@@ -339,9 +307,7 @@ describe('requirePermission guard', () => {
       jti: 'jti-throw-unexpected',
     });
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/guarded').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(500);
     expect(res.body.message).toBe('Permission check failed.');
@@ -385,9 +351,7 @@ describe('attachUserIfPresent middleware', () => {
       jti: 'jti-abc',
     });
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app).get('/api/guarded').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body.result.user).toEqual({
@@ -410,9 +374,7 @@ describe('attachUserIfPresent middleware', () => {
 
     app.use(errorHandler(logger));
 
-    const res = await request(app)
-      .get('/api/guarded')
-      .set('Authorization', 'Bearer invalid-token');
+    const res = await request(app).get('/api/guarded').set('Authorization', 'Bearer invalid-token');
 
     expect(res.status).toBe(200);
     expect(res.body.result.user).toBeNull();

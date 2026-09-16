@@ -105,18 +105,21 @@ describe('Role entity', () => {
       { name: 'SuperAdmin', displayName: 'Super Administrator', sortOrder: 5 },
     ];
 
-    it.each(roleCases)('creates a $name role with correct properties', ({ name, displayName, sortOrder }) => {
-      const role = Role.create(name, displayName, sortOrder);
+    it.each(roleCases)(
+      'creates a $name role with correct properties',
+      ({ name, displayName, sortOrder }) => {
+        const role = Role.create(name, displayName, sortOrder);
 
-      expect(role.id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      );
-      expect(role.name).toBe(name);
-      expect(role.displayName).toBe(displayName);
-      expect(role.sortOrder).toBe(sortOrder);
-      expect(role.description).toBeNull();
-      expect(role.createdAt).toBeInstanceOf(Date);
-    });
+        expect(role.id).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+        );
+        expect(role.name).toBe(name);
+        expect(role.displayName).toBe(displayName);
+        expect(role.sortOrder).toBe(sortOrder);
+        expect(role.description).toBeNull();
+        expect(role.createdAt).toBeInstanceOf(Date);
+      },
+    );
   });
 });
 

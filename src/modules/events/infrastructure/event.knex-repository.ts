@@ -25,7 +25,7 @@ const SORT_MAP: Record<string, { column: string; direction: 'asc' | 'desc' }> = 
   'date-asc': { column: 'starts_at', direction: 'asc' },
   'date-desc': { column: 'starts_at', direction: 'desc' },
   'created-desc': { column: 'created_at', direction: 'desc' },
-  'popularity': { column: 'created_at', direction: 'desc' },
+  popularity: { column: 'created_at', direction: 'desc' },
 };
 
 export class KnexEventRepository implements EventRepository {
@@ -123,10 +123,7 @@ export class KnexEventRepository implements EventRepository {
     return events;
   }
 
-  async setTags(
-    eventId: string,
-    tags: { tagId: string; tagName: string }[],
-  ): Promise<void> {
+  async setTags(eventId: string, tags: { tagId: string; tagName: string }[]): Promise<void> {
     await this.knex('event_tags').where({ event_id: eventId }).del();
     if (tags.length > 0) {
       await this.knex('event_tags').insert(
@@ -142,9 +139,7 @@ export class KnexEventRepository implements EventRepository {
     return rows.map((r) => ({ tagId: r.tag_id, tagName: r.tag_name }));
   }
 
-  private buildFilterQuery(
-    filters: Omit<EventListFilters, 'offset' | 'limit'>,
-  ): Knex.QueryBuilder {
+  private buildFilterQuery(filters: Omit<EventListFilters, 'offset' | 'limit'>): Knex.QueryBuilder {
     const query = this.knex('events').select('*');
     this.applyFilters(query, filters);
     return query;

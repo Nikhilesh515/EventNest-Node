@@ -13,9 +13,7 @@ describe('Rsvp Entity', () => {
   describe('create()', () => {
     it('generates a UUID id', () => {
       const rsvp = Rsvp.create(validInput);
-      expect(rsvp.id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      );
+      expect(rsvp.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     });
 
     it('defaults status to Confirmed', () => {
@@ -33,7 +31,9 @@ describe('Rsvp Entity', () => {
     });
 
     it('defaults guestCount to 1 when not provided', () => {
-      expect(Rsvp.create({ ...validInput, guestCount: undefined as unknown as number }).guestCount).toBe(1);
+      expect(
+        Rsvp.create({ ...validInput, guestCount: undefined as unknown as number }).guestCount,
+      ).toBe(1);
     });
 
     it('sets notes to null when not provided', () => {

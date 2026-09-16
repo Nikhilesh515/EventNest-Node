@@ -11,7 +11,10 @@ import {
 } from './infrastructure/index.js';
 import { AuthService, type AuthServiceConfig } from './application/auth.service.js';
 import { UserService } from './application/user.service.js';
-import { PermissionService, computeEffectivePermissions } from './application/permission.service.js';
+import {
+  PermissionService,
+  computeEffectivePermissions,
+} from './application/permission.service.js';
 import { createAuthRoutes } from './http/auth.routes.js';
 import { createUserRoutes } from './http/user.routes.js';
 import { createPermissionRoutes } from './http/permission.routes.js';

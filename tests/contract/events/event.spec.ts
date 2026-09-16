@@ -16,7 +16,12 @@ beforeAll(async () => {
   ctx = await getSharedTestApp();
   const admin = await loginUser(ctx.app, 'admin@eventnest.io', 'Admin@123');
   adminToken = admin.accessToken;
-  const user = await registerUser(ctx.app, 'eventuser@test.example.com', 'password123', 'Event User');
+  const user = await registerUser(
+    ctx.app,
+    'eventuser@test.example.com',
+    'password123',
+    'Event User',
+  );
   userToken = user.accessToken;
 });
 
@@ -82,9 +87,7 @@ describe('POST /api/events', () => {
   });
 
   it('TC-EVT-004: returns 401 without auth', async () => {
-    const res = await request(ctx.app)
-      .post('/api/events')
-      .send(validEvent);
+    const res = await request(ctx.app).post('/api/events').send(validEvent);
 
     expect(res.status).toBe(401);
   });

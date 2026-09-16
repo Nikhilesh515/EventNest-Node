@@ -58,7 +58,8 @@ export class EventService implements EventLookupPort {
     };
     if (filters.search) listFilters.search = filters.search;
     if (filters.tagId) listFilters.tagId = filters.tagId;
-    if (filters.visibility) listFilters.visibility = filters.visibility as EventListFilters['visibility'];
+    if (filters.visibility)
+      listFilters.visibility = filters.visibility as EventListFilters['visibility'];
     if (filters.timeframe) listFilters.timeframe = filters.timeframe;
     if (filters.sort) listFilters.sort = filters.sort;
 
@@ -106,11 +107,7 @@ export class EventService implements EventLookupPort {
     );
   }
 
-  async getById(
-    id: string,
-    callerPerms: string[] = [],
-    userId?: string,
-  ): Promise<EventDto> {
+  async getById(id: string, callerPerms: string[] = [], userId?: string): Promise<EventDto> {
     const event = await this.events.findById(id);
     if (!event) throw new NotFoundError(`Event '${id}' not found.`);
 

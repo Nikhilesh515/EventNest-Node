@@ -9,7 +9,9 @@ function createMockRepo(): TagRepository {
   const store = new Map<string, Tag>();
   return {
     findById: vi.fn(async (id: string) => store.get(id) ?? null),
-    findByIds: vi.fn(async (ids: string[]) => Array.from(store.values()).filter((t) => ids.includes(t.id))),
+    findByIds: vi.fn(async (ids: string[]) =>
+      Array.from(store.values()).filter((t) => ids.includes(t.id)),
+    ),
     findByName: vi.fn(async (name: string) => {
       for (const tag of store.values()) {
         if (tag.name === name) return tag;

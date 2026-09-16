@@ -12,10 +12,8 @@ export function createTagRoutes(tagService: Parameters<typeof createTagControlle
 
   router.get('/api/tags', (req, res) => controller.getAll(req, res));
 
-  router.get(
-    '/api/tags/:id',
-    validate(tagIdParamSchema),
-    (req, res) => controller.getById(req, res),
+  router.get('/api/tags/:id', validate(tagIdParamSchema), (req, res) =>
+    controller.getById(req, res),
   );
 
   router.post(

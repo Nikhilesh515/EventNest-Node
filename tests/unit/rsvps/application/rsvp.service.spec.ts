@@ -1,7 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { RsvpService } from '../../../../src/modules/rsvps/application/rsvp.service.js';
 import type { RsvpRepository } from '../../../../src/modules/rsvps/application/rsvp.repository.js';
-import type { EventLookupPort, EventSummary } from '../../../../src/modules/events/application/ports/event-lookup.port.js';
+import type {
+  EventLookupPort,
+  EventSummary,
+} from '../../../../src/modules/events/application/ports/event-lookup.port.js';
 import type { UserLookupPort } from '../../../../src/modules/auth/application/ports/user-lookup.port.js';
 import { NotFoundError } from '../../../../src/shared/domain/errors.js';
 import {
@@ -66,11 +69,21 @@ function createMockRepo(): RsvpRepository {
     }),
     listByEventWithEventTitle: vi.fn(async (eventId: string) => {
       const rsvps = Array.from(store.values()).filter((r) => r.eventId === eventId);
-      return rsvps.map((r) => ({ rsvp: r, eventTitle: 'Test Event', eventStartsAt: new Date(), eventLocation: 'Test Location' }));
+      return rsvps.map((r) => ({
+        rsvp: r,
+        eventTitle: 'Test Event',
+        eventStartsAt: new Date(),
+        eventLocation: 'Test Location',
+      }));
     }),
     listByUserWithEventTitle: vi.fn(async (userId: string) => {
       const rsvps = Array.from(store.values()).filter((r) => r.userId === userId);
-      return rsvps.map((r) => ({ rsvp: r, eventTitle: 'Test Event', eventStartsAt: new Date(), eventLocation: 'Test Location' }));
+      return rsvps.map((r) => ({
+        rsvp: r,
+        eventTitle: 'Test Event',
+        eventStartsAt: new Date(),
+        eventLocation: 'Test Location',
+      }));
     }),
   };
 }
@@ -122,9 +135,9 @@ describe('RsvpService', () => {
     });
 
     it('throws NotFoundError for missing event', async () => {
-      await expect(
-        service.create('missing', { guestCount: 1 }, 'user-1', 'User'),
-      ).rejects.toThrow(NotFoundError);
+      await expect(service.create('missing', { guestCount: 1 }, 'user-1', 'User')).rejects.toThrow(
+        NotFoundError,
+      );
     });
 
     it('throws RsvpToUnpublishedEventError for Draft event', async () => {
@@ -183,9 +196,9 @@ describe('RsvpService', () => {
 
     it('throws InvalidRsvpStatusError for bad status', async () => {
       const created = await service.create('pub-event', { guestCount: 1 }, 'user-1', 'User');
-      await expect(
-        service.update(created.id, { status: 'Invalid' }, 'user-1'),
-      ).rejects.toThrow(InvalidRsvpStatusError);
+      await expect(service.update(created.id, { status: 'Invalid' }, 'user-1')).rejects.toThrow(
+        InvalidRsvpStatusError,
+      );
     });
   });
 

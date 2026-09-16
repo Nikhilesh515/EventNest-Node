@@ -16,11 +16,8 @@ export function createEventRoutes(eventService: Parameters<typeof createEventCon
   const controller = createEventController(eventService);
   const router = Router();
 
-  router.get(
-    '/api/events',
-    attachUserIfPresent,
-    validate(eventListQuerySchema),
-    (req, res) => controller.list(req, res),
+  router.get('/api/events', attachUserIfPresent, validate(eventListQuerySchema), (req, res) =>
+    controller.list(req, res),
   );
 
   router.get(
@@ -30,11 +27,8 @@ export function createEventRoutes(eventService: Parameters<typeof createEventCon
     (req, res) => controller.getMyEvents(req, res),
   );
 
-  router.get(
-    '/api/events/:id',
-    attachUserIfPresent,
-    validate(eventIdParamSchema),
-    (req, res) => controller.getById(req, res),
+  router.get('/api/events/:id', attachUserIfPresent, validate(eventIdParamSchema), (req, res) =>
+    controller.getById(req, res),
   );
 
   router.post(
