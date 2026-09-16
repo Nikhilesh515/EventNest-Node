@@ -7,6 +7,12 @@ export interface UserRepository {
   update(user: User): Promise<User>;
   list(page: number, pageSize: number): Promise<User[]>;
   count(): Promise<number>;
+  listPaginated(query: {
+    page: number;
+    pageSize: number;
+    search?: string;
+    role?: string;
+  }): Promise<{ items: User[]; total: number }>;
   findRoleByName(name: string): Promise<{ id: string; name: string } | null>;
   updateRoleId(userId: string, roleId: string): Promise<void>;
   findByRoleId(roleId: string): Promise<User[]>;

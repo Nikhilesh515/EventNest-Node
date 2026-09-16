@@ -54,7 +54,7 @@ export function buildAuthModule(deps: AuthModuleDeps) {
     cache,
     authServiceConfig,
   );
-  const userService = new UserService(userRepo, grantRepo);
+  const userService = new UserService(userRepo, grantRepo, roleRepo, cache);
   const roleService = new RoleService(roleRepo, userRepo, cache);
   const permissionService = new PermissionService(grantRepo, userRepo, cache);
 

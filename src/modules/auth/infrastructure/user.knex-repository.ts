@@ -133,4 +133,43 @@ export class KnexUserRepository implements UserRepository {
       .select(...USER_COLUMNS);
     return rows.map(hydrateUser);
   }
+
+  async listPaginated(query: {
+    page: number;
+    pageSize: number;
+    search?: string;
+    role?: string;
+  }): Promise<{ items: User[]; total: number }> {
+    const { page, pageSize, search, role } = query;
+
+    const baseQuery = this.knex('users')
+      .join('roles', 'users.role_id', 'roles.id')
+      .where('users.is_active', true);
+
+    if (search) {
+      const term = `%${search.toLowerCase()}%`;
+      baseQuery.where(function () {
+        this.whereRaw('LOWER(users.email) LIKE ?', [term]).orWhereRaw(
+          'LOWER(users.display_name) LIKE ?',
+          [term],
+        );
+      });
+    }
+
+    if (role) {
+      baseQuery.where('users.role_id', role);
+    }
+
+    const countResult = await baseQuery.clone().clearSelect().count('users.id as cnt').first();
+    const total = Number((countResult as { cnt: string | number } | undefined)?.cnt ?? 0);
+
+    const offset = (page - 1) * pageSize;
+    const rows = await baseQuery
+      .select(...USER_COLUMNS)
+      .orderBy('users.created_at', 'desc')
+      .limit(pageSize)
+      .offset(offset);
+
+    return { items: rows.map(hydrateUser), total };
+  }
 }

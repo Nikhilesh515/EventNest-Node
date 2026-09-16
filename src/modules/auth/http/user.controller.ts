@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import type { UserService } from '../application/user.service.js';
-import { ok, noContent } from '../../../shared/http/respond.js';
+import { ok, created, noContent } from '../../../shared/http/respond.js';
 import { UnauthorizedError } from '../../../shared/domain/errors.js';
 
 export function createUserController(userService: UserService) {
@@ -20,10 +20,19 @@ export function createUserController(userService: UserService) {
     },
 
     async list(req: Request, res: Response) {
-      const page = Number(req.query.page) || 1;
-      const pageSize = Number(req.query.pageSize) || 20;
-      const result = await userService.list(page, pageSize);
+      const { page, pageSize, search, role } = req.query;
+      const result = await userService.listPaginated({
+        ...(page !== undefined && { page: Number(page) }),
+        ...(pageSize !== undefined && { pageSize: Number(pageSize) }),
+        ...(search !== undefined && { search: search as string }),
+        ...(role !== undefined && { role: role as string }),
+      });
       ok(res, result);
+    },
+
+    async createByAdmin(req: Request, res: Response) {
+      const result = await userService.createByAdmin(req.body);
+      created(res, result, `/api/users/${result.id}`);
     },
 
     async update(req: Request, res: Response) {

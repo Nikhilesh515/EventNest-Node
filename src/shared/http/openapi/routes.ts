@@ -8,7 +8,7 @@ import {
   refreshSchema,
   logoutSchema,
 } from '../../../modules/auth/http/auth.schemas.js';
-import { updateUserSchema, listUsersSchema } from '../../../modules/auth/http/user.schemas.js';
+import { updateUserSchema, listUsersSchema, createAdminUserSchema } from '../../../modules/auth/http/user.schemas.js';
 import {
   grantSchema,
   revokeSchema,
@@ -107,9 +107,21 @@ registry.registerPath({
   method: 'get',
   path: '/api/users',
   tags: ['Users'],
-  summary: 'List users',
+  summary: 'List users (paginated)',
   request: { query: listUsersSchema.query },
-  responses: { 200: { description: 'UserDto[]' } },
+  responses: { 200: { description: 'PaginatedUserListDto' } },
+} as unknown as RouteConfig);
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/users',
+  tags: ['Users'],
+  summary: 'Create a new user (admin)',
+  request: { body: { content: { 'application/json': { schema: createAdminUserSchema.body } } } },
+  responses: {
+    201: { description: 'UserDto' },
+    409: { description: 'Email already exists' },
+  },
 } as unknown as RouteConfig);
 
 registry.registerPath({

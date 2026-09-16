@@ -49,6 +49,10 @@ function createMockUserRepo(): UserRepository {
     update: vi.fn(async (user: User) => { store.set(user.id, user); return user; }),
     list: vi.fn(async () => Array.from(store.values())),
     count: vi.fn(async () => store.size),
+    listPaginated: vi.fn(async (query: { page: number; pageSize: number; search?: string; role?: string }) => {
+      const items = Array.from(store.values());
+      return { items, total: items.length };
+    }),
     findRoleByName: vi.fn(async () => null),
     updateRoleId: vi.fn(async () => {}),
     findByRoleId: vi.fn(async () => []),
