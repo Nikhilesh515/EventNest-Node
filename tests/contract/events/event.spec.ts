@@ -11,6 +11,7 @@ import { registerUser, loginUser } from '../../helpers/auth-helpers.js';
 let ctx: TestAppContext;
 let adminToken: string;
 let userToken: string;
+let organizerRoleId: string;
 
 beforeAll(async () => {
   ctx = await getSharedTestApp();
@@ -23,6 +24,10 @@ beforeAll(async () => {
     'Event User',
   );
   userToken = user.accessToken;
+  const roles = await request(ctx.app)
+    .get('/api/roles')
+    .set('Authorization', `Bearer ${adminToken}`);
+  organizerRoleId = roles.body.result.find((r: { name: string }) => r.name === 'Organizer').id;
 });
 
 afterAll(async () => {
@@ -334,6 +339,79 @@ describe('GET /api/events/:id', () => {
       .send(validEvent);
 
     const res = await request(ctx.app).get(`/api/events/${createRes.body.result.id}`);
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('GET /api/events/:id — non-published visibility', () => {
+  let organizerToken: string;
+
+  beforeEach(async () => {
+    await request(ctx.app).post('/api/users').set('Authorization', `Bearer ${adminToken}`).send({
+      email: 'event-owner@test.example.com',
+      displayName: 'Event Owner',
+      password: 'password123',
+      roleId: organizerRoleId,
+    });
+
+    const login = await loginUser(ctx.app, 'event-owner@test.example.com', 'password123');
+    organizerToken = login.accessToken;
+  });
+
+  async function createDraft(): Promise<string> {
+    const res = await request(ctx.app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${organizerToken}`)
+      .send(validEvent);
+
+    expect(res.status).toBe(201);
+    return res.body.result.id;
+  }
+
+  it('TC-EVT-024: organizer-role owner reads their own Draft', async () => {
+    const id = await createDraft();
+
+    const res = await request(ctx.app)
+      .get(`/api/events/${id}`)
+      .set('Authorization', `Bearer ${organizerToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.result.status).toBe('Draft');
+  });
+
+  it('TC-EVT-025: authenticated non-owner reads a Draft', async () => {
+    const id = await createDraft();
+
+    const res = await request(ctx.app)
+      .get(`/api/events/${id}`)
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it('TC-EVT-026: anonymous reads a Draft', async () => {
+    const id = await createDraft();
+
+    const res = await request(ctx.app).get(`/api/events/${id}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it('TC-EVT-027: admin reads a Draft they do not own', async () => {
+    const id = await createDraft();
+
+    const res = await request(ctx.app)
+      .get(`/api/events/${id}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it('TC-EVT-028: missing event still returns 404', async () => {
+    const res = await request(ctx.app)
+      .get('/api/events/00000000-0000-0000-0000-000000000000')
+      .set('Authorization', `Bearer ${adminToken}`);
 
     expect(res.status).toBe(404);
   });

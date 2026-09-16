@@ -124,7 +124,7 @@ export class EventService implements EventLookupPort {
     if (event.status !== 'Published') {
       const canManage = callerPerms.some((p) => HAS_EVENT_MANAGE.includes(p));
       const isOwner = userId === event.organizerId;
-      if (!canManage || !isOwner) {
+      if (!canManage && !isOwner) {
         throw new NotFoundError(`Event '${id}' not found.`);
       }
     }
