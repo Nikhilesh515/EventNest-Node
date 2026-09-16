@@ -8,4 +8,6 @@ export interface UserRepository {
   list(page: number, pageSize: number): Promise<User[]>;
   count(): Promise<number>;
   findRoleByName(name: string): Promise<{ id: string; name: string } | null>;
+  updateRoleId(userId: string, roleId: string): Promise<void>;
+  findByRoleId(roleId: string): Promise<User[]>;
 }

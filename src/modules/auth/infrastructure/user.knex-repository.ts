@@ -120,4 +120,17 @@ export class KnexUserRepository implements UserRepository {
     const row = await this.knex('roles').where('name', name).first();
     return row ? { id: row.id, name: row.name } : null;
   }
+
+  async updateRoleId(userId: string, roleId: string): Promise<void> {
+    await this.knex('users').where({ id: userId }).update({ role_id: roleId, updated_at: new Date() });
+  }
+
+  async findByRoleId(roleId: string): Promise<User[]> {
+    const rows = await this.knex('users')
+      .join('roles', 'users.role_id', 'roles.id')
+      .where('users.role_id', roleId)
+      .where('users.is_active', true)
+      .select(...USER_COLUMNS);
+    return rows.map(hydrateUser);
+  }
 }

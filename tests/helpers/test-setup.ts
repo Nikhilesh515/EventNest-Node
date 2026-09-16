@@ -162,4 +162,12 @@ export async function resetTestData(knex: Knex): Promise<void> {
   await knex('tags')
     .whereNotIn('name', ['Technology', 'Music', 'Food & Drink', 'Sports', 'Networking'])
     .del();
+  await knex('role_permissions')
+    .whereNotIn('role_id', function () {
+      this.select('id').from('roles').whereIn('name', ['User', 'Organizer', 'Moderator', 'Admin', 'SuperAdmin']);
+    })
+    .del();
+  await knex('roles')
+    .whereNotIn('name', ['User', 'Organizer', 'Moderator', 'Admin', 'SuperAdmin'])
+    .del();
 }

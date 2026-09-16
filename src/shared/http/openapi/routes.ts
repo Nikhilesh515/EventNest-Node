@@ -15,6 +15,12 @@ import {
   checkSchema,
 } from '../../../modules/auth/http/permission.schemas.js';
 import {
+  createRoleSchema,
+  updateRoleSchema,
+  roleIdParamSchema,
+  assignUserRoleSchema,
+} from '../../../modules/auth/http/role.schemas.js';
+import {
   createEventSchema,
   updateEventSchema,
   eventListQuerySchema,
@@ -181,6 +187,69 @@ registry.registerPath({
   tags: ['Permissions'],
   summary: 'Revoke a permission from a user',
   request: { body: { content: { 'application/json': { schema: revokeSchema.body } } } },
+  responses: { 204: { description: 'No content' } },
+} as unknown as RouteConfig);
+
+// ---------------------------------------------------------------------------
+// Roles
+// ---------------------------------------------------------------------------
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/roles',
+  tags: ['Roles'],
+  summary: 'List all roles with permissions',
+  responses: { 200: { description: 'RoleDto[]' } },
+} as unknown as RouteConfig);
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/roles/{id}',
+  tags: ['Roles'],
+  summary: 'Get role by ID',
+  request: { params: roleIdParamSchema.params },
+  responses: { 200: { description: 'RoleDto' }, 404: { description: 'Not found' } },
+} as unknown as RouteConfig);
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/roles',
+  tags: ['Roles'],
+  summary: 'Create a new role',
+  request: { body: { content: { 'application/json': { schema: createRoleSchema.body } } } },
+  responses: { 200: { description: 'RoleDto' }, 409: { description: 'Duplicate name' } },
+} as unknown as RouteConfig);
+
+registry.registerPath({
+  method: 'put',
+  path: '/api/roles/{id}',
+  tags: ['Roles'],
+  summary: 'Update a role',
+  request: {
+    params: roleIdParamSchema.params,
+    body: { content: { 'application/json': { schema: updateRoleSchema.body } } },
+  },
+  responses: { 200: { description: 'RoleDto' }, 404: { description: 'Not found' } },
+} as unknown as RouteConfig);
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/roles/{id}',
+  tags: ['Roles'],
+  summary: 'Delete a role',
+  request: { params: roleIdParamSchema.params },
+  responses: { 204: { description: 'No content' } },
+} as unknown as RouteConfig);
+
+registry.registerPath({
+  method: 'put',
+  path: '/api/users/{id}/role',
+  tags: ['Roles'],
+  summary: 'Assign a role to a user',
+  request: {
+    params: userIdParam,
+    body: { content: { 'application/json': { schema: assignUserRoleSchema.body } } },
+  },
   responses: { 204: { description: 'No content' } },
 } as unknown as RouteConfig);
 
