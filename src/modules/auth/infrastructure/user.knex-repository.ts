@@ -30,7 +30,7 @@ function rowToProps(row: UserRow): UserProps {
 }
 
 function hydrateUser(row: UserRow): User {
-  return new (User as unknown as { new (props: UserProps): User })(rowToProps(row));
+  return User.reconstitute(rowToProps(row));
 }
 
 const USER_COLUMNS = [

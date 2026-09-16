@@ -11,6 +11,29 @@ Every milestone follows the same cycle: **Analyze → Explore → Document → V
 
 ---
 
+## CRITICAL: PowerShell curl Escaping
+
+**NEVER** use inline JSON with curl -d in PowerShell. It will silently fail and send empty bodies.
+
+### WRONG (will fail):
+```bash
+curl -s -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d "{\"email\":\"admin@eventnest.io\",\"password\":\"Admin@123\"}"
+```
+
+### CORRECT (use a variable):
+```powershell
+$body = '{"email":"admin@eventnest.io","password":"Admin@123"}'
+$r = curl -s -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d $body | ConvertFrom-Json
+```
+
+**Symptom of the bug:** `Content-Length: 2` in verbose output (only `{}` sent)
+
+**Always verify:** Check that the response contains actual data, not just `{"code":500}`
+
+**For complex E2E testing:** Write actual test scripts (Node.js or PowerShell) instead of chaining curl commands. See `scripts/e2e-api-test.ps1` for an example.
+
+---
+
 ## The Cycle (per milestone)
 
 ### 1. Analyze

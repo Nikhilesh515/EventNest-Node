@@ -25,7 +25,7 @@ const SORT_MAP: Record<string, { column: string; direction: 'asc' | 'desc' }> = 
   'date-asc': { column: 'starts_at', direction: 'asc' },
   'date-desc': { column: 'starts_at', direction: 'desc' },
   'created-desc': { column: 'created_at', direction: 'desc' },
-  popularity: { column: 'created_at', direction: 'desc' },
+  popularity: { column: 'going_count', direction: 'desc' },
 };
 
 export class KnexEventRepository implements EventRepository {
@@ -43,8 +43,9 @@ export class KnexEventRepository implements EventRepository {
     return row ? Event.reconstitute(rowToProps(row)) : null;
   }
 
-  async create(event: Event): Promise<Event> {
-    const [row] = await this.knex('events')
+  async create(event: Event, trx?: Knex.Transaction): Promise<Event> {
+    const client = trx ?? this.knex;
+    const [row] = await client('events')
       .insert({
         id: event.id,
         title: event.title,
@@ -88,20 +89,33 @@ export class KnexEventRepository implements EventRepository {
   }
 
   async list(filters: EventListFilters): Promise<Event[]> {
-    const query = this.buildFilterQuery(filters);
+    const isPopularity = filters.sort === 'popularity';
+    const query = this.buildFilterQuery(filters, isPopularity);
+
+    if (isPopularity) {
+      query.leftJoin(
+        this.knex('rsvps')
+          .select('event_id')
+          .sum('guest_count as going_count')
+          .where('status', 'Confirmed')
+          .groupBy('event_id')
+          .as('rsvp_stats'),
+        'events.id',
+        'rsvp_stats.event_id',
+      );
+    }
 
     const sort = SORT_MAP[filters.sort ?? 'created-desc'] ?? SORT_MAP['created-desc']!;
     query.orderBy(sort.column, sort.direction);
     query.offset(filters.offset);
     query.limit(filters.limit);
 
-    const rows = await query;
-    const events: Event[] = [];
-    for (const row of rows) {
-      const tags = await this.getTagsByEventId(row.id);
-      events.push(Event.reconstitute({ ...rowToProps(row), tags }));
-    }
-    return events;
+    const rows: Record<string, unknown>[] = await query;
+    const tagsByEvent = await this.loadTagsForEvents(rows.map((r) => r.id as string));
+
+    return rows.map((row) =>
+      Event.reconstitute({ ...rowToProps(row), tags: tagsByEvent[row.id as string] ?? [] }),
+    );
   }
 
   async count(filters: Omit<EventListFilters, 'offset' | 'limit'>): Promise<number> {
@@ -112,21 +126,26 @@ export class KnexEventRepository implements EventRepository {
   }
 
   async listByOrganizer(organizerId: string): Promise<Event[]> {
-    const rows = await this.knex('events')
+    const rows: Record<string, unknown>[] = await this.knex('events')
       .where({ organizer_id: organizerId })
       .orderBy('created_at', 'desc');
-    const events: Event[] = [];
-    for (const row of rows) {
-      const tags = await this.getTagsByEventId(row.id);
-      events.push(Event.reconstitute({ ...rowToProps(row), tags }));
-    }
-    return events;
+
+    const tagsByEvent = await this.loadTagsForEvents(rows.map((r) => r.id as string));
+
+    return rows.map((row) =>
+      Event.reconstitute({ ...rowToProps(row), tags: tagsByEvent[row.id as string] ?? [] }),
+    );
   }
 
-  async setTags(eventId: string, tags: { tagId: string; tagName: string }[]): Promise<void> {
-    await this.knex('event_tags').where({ event_id: eventId }).del();
+  async setTags(
+    eventId: string,
+    tags: { tagId: string; tagName: string }[],
+    trx?: Knex.Transaction,
+  ): Promise<void> {
+    const client = trx ?? this.knex;
+    await client('event_tags').where({ event_id: eventId }).del();
     if (tags.length > 0) {
-      await this.knex('event_tags').insert(
+      await client('event_tags').insert(
         tags.map((t) => ({ event_id: eventId, tag_id: t.tagId, tag_name: t.tagName })),
       );
     }
@@ -139,9 +158,35 @@ export class KnexEventRepository implements EventRepository {
     return rows.map((r) => ({ tagId: r.tag_id, tagName: r.tag_name }));
   }
 
-  private buildFilterQuery(filters: Omit<EventListFilters, 'offset' | 'limit'>): Knex.QueryBuilder {
-    const query = this.knex('events').select('*');
-    this.applyFilters(query, filters);
+  private async loadTagsForEvents(
+    eventIds: string[],
+  ): Promise<Record<string, { tagId: string; tagName: string }[]>> {
+    if (eventIds.length === 0) return {};
+
+    const rows = await this.knex('event_tags')
+      .whereIn('event_id', eventIds)
+      .select('event_id', 'tag_id', 'tag_name');
+
+    return rows.reduce(
+      (acc, row) => {
+        if (!acc[row.event_id]) acc[row.event_id] = [];
+        acc[row.event_id].push({ tagId: row.tag_id, tagName: row.tag_name });
+        return acc;
+      },
+      {} as Record<string, { tagId: string; tagName: string }[]>,
+    );
+  }
+
+  private buildFilterQuery(
+    filters: Omit<EventListFilters, 'offset' | 'limit'>,
+    includePopularityJoin: boolean,
+  ): Knex.QueryBuilder {
+    const query = this.knex('events').select('events.*');
+    if (!includePopularityJoin) {
+      this.applyFilters(query, filters);
+    } else {
+      this.applyFilters(query, filters);
+    }
     return query;
   }
 

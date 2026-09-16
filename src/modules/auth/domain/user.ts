@@ -54,6 +54,10 @@ export class User {
     });
   }
 
+  static reconstitute(props: UserProps): User {
+    return new User(props);
+  }
+
   deactivate(): void {
     this.isActive = false;
     this.updatedAt = new Date();

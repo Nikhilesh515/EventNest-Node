@@ -37,6 +37,10 @@ export class PermissionGrant {
     });
   }
 
+  static reconstitute(props: PermissionGrantProps): PermissionGrant {
+    return new PermissionGrant(props);
+  }
+
   isExpired(now: Date): boolean {
     return this.expiresAt !== null && now >= this.expiresAt;
   }

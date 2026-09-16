@@ -56,7 +56,7 @@ export function buildAuthModule(deps: AuthModuleDeps) {
   );
   const userService = new UserService(userRepo, grantRepo, roleRepo, cache);
   const roleService = new RoleService(roleRepo, userRepo, cache);
-  const permissionService = new PermissionService(grantRepo, userRepo, cache);
+  const permissionService = new PermissionService(grantRepo, userRepo, cache, deps.logger);
 
   const userLookup = new UserLookupAdapter(knex);
   const permissionProvider = new PermissionProviderAdapter(cache, grantRepo, userRepo);

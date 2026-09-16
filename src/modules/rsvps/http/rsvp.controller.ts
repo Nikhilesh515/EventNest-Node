@@ -1,21 +1,26 @@
 import type { Request, Response } from 'express';
 import type { RsvpService } from '../application/rsvp.service.js';
 import { ok, created, noContent } from '../../../shared/http/respond.js';
+import { UnauthorizedError } from '../../../shared/domain/errors.js';
+
+function requireUser(req: Request): { id: string; name: string } {
+  if (!req.user) throw new UnauthorizedError('Authentication required.');
+  return { id: req.user.id, name: req.user.name };
+}
 
 export function createRsvpController(rsvpService: RsvpService) {
   return {
     async create(req: Request, res: Response) {
-      const userId = req.user!.id;
-      const userName = req.user!.name;
+      const user = requireUser(req);
       const eventId = req.params.eventId as string;
-      const result = await rsvpService.create(eventId, req.body, userId, userName);
+      const result = await rsvpService.create(eventId, req.body, user.id, user.name);
       created(res, result, `/api/rsvps/${result.id}`);
     },
 
     async cancelOwn(req: Request, res: Response) {
-      const userId = req.user!.id;
+      const user = requireUser(req);
       const eventId = req.params.eventId as string;
-      await rsvpService.cancelOwn(eventId, userId);
+      await rsvpService.cancelOwn(eventId, user.id);
       noContent(res);
     },
 
@@ -31,8 +36,8 @@ export function createRsvpController(rsvpService: RsvpService) {
     },
 
     async update(req: Request, res: Response) {
-      const userId = req.user!.id;
-      const result = await rsvpService.update(req.params.id as string, req.body, userId);
+      const user = requireUser(req);
+      const result = await rsvpService.update(req.params.id as string, req.body, user.id);
       ok(res, result);
     },
 

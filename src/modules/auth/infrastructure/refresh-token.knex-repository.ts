@@ -28,9 +28,7 @@ function rowToProps(row: RefreshTokenRow): RefreshTokenProps {
 }
 
 function hydrateRefreshToken(row: RefreshTokenRow): RefreshToken {
-  return new (RefreshToken as unknown as { new (props: RefreshTokenProps): RefreshToken })(
-    rowToProps(row),
-  );
+  return RefreshToken.reconstitute(rowToProps(row));
 }
 
 export class KnexRefreshTokenRepository implements RefreshTokenRepository {

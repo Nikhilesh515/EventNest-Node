@@ -1,8 +1,9 @@
+import type { Knex } from 'knex';
 import { NotFoundError, ForbiddenError } from '../../../shared/domain/errors.js';
 import type { EventRepository, EventListFilters } from './event.repository.js';
 import { Event, type EventTagSnapshot } from '../domain/event.js';
 import { DuplicateEventTitleError, InvalidTagError } from '../domain/errors.js';
-import type { TagLookupPort } from './ports/tag-lookup.port.js';
+import type { TagLookupPort, TagSummary } from './ports/tag-lookup.port.js';
 import type { UserLookupPort } from '../../auth/application/ports/user-lookup.port.js';
 import type { EventLookupPort, EventSummary } from './ports/event-lookup.port.js';
 import type { RsvpStatsPort } from '../../rsvps/application/ports/rsvp-stats.port.js';
@@ -18,6 +19,7 @@ const HAS_EVENT_MANAGE = ['Events.Edit', 'Events.Delete'];
 
 export class EventService implements EventLookupPort {
   constructor(
+    private readonly knex: Knex,
     private readonly events: EventRepository,
     private readonly tags: TagLookupPort,
     private readonly users: UserLookupPort,
@@ -43,9 +45,12 @@ export class EventService implements EventLookupPort {
       visibility: input.visibility,
     });
 
-    const created = await this.events.create(event);
-    await this.events.setTags(created.id, tagSnapshots);
-    return this.toDto(created);
+    await this.knex.transaction(async (trx) => {
+      const created = await this.events.create(event, trx);
+      await this.events.setTags(created.id, tagSnapshots, trx);
+    });
+    const reloaded = await this.events.findById(event.id);
+    return this.toDto(reloaded!);
   }
 
   async list(filters: EventFilters, callerPerms: string[] = []): Promise<PaginatedEventsDto> {
@@ -82,12 +87,13 @@ export class EventService implements EventLookupPort {
           this.rsvpStats.getMaybeCounts(items.map((e) => e.id)),
         ])
       : [{}, {}];
-    const enriched = await Promise.all(
-      items.map((e) => this.toDto(e, goingCounts[e.id] ?? 0, maybeCounts[e.id] ?? 0)),
-    );
+
+    const tagMap = await this.buildTagMap(items.flatMap((e) => e.tags.map((t) => t.tagId)));
 
     return {
-      items: enriched,
+      items: items.map((e) =>
+        this.toDtoWithMap(e, tagMap, goingCounts[e.id] ?? 0, maybeCounts[e.id] ?? 0),
+      ),
       total,
       page,
       size: pageSize,
@@ -103,8 +109,11 @@ export class EventService implements EventLookupPort {
           this.rsvpStats.getMaybeCounts(items.map((e) => e.id)),
         ])
       : [{}, {}];
-    return Promise.all(
-      items.map((e) => this.toDto(e, goingCounts[e.id] ?? 0, maybeCounts[e.id] ?? 0)),
+
+    const tagMap = await this.buildTagMap(items.flatMap((e) => e.tags.map((t) => t.tagId)));
+
+    return items.map((e) =>
+      this.toDtoWithMap(e, tagMap, goingCounts[e.id] ?? 0, maybeCounts[e.id] ?? 0),
     );
   }
 
@@ -220,14 +229,29 @@ export class EventService implements EventLookupPort {
     }
   }
 
+  private async buildTagMap(tagIds: string[]): Promise<Map<string, TagSummary>> {
+    if (tagIds.length === 0) return new Map();
+    const uniqueIds = [...new Set(tagIds)];
+    const summaries = await this.tags.getTags(uniqueIds);
+    return new Map(summaries.map((t) => [t.id, t]));
+  }
+
   private async toDto(event: Event, goingCount = 0, maybeCount = 0): Promise<EventDto> {
-    const tagDtos = await Promise.all(
-      event.tags.map(async (t) => {
-        const summaries = await this.tags.getTags([t.tagId]);
-        const tag = summaries[0];
-        return tag ?? { id: t.tagId, name: t.tagName, color: '#000000' };
-      }),
-    );
+    const tagIds = event.tags.map((t) => t.tagId);
+    const tagMap = await this.buildTagMap(tagIds);
+    return this.toDtoWithMap(event, tagMap, goingCount, maybeCount);
+  }
+
+  private toDtoWithMap(
+    event: Event,
+    tagMap: Map<string, TagSummary>,
+    goingCount = 0,
+    maybeCount = 0,
+  ): EventDto {
+    const tagDtos = event.tags.map((t) => {
+      const tag = tagMap.get(t.tagId);
+      return tag ?? { id: t.tagId, name: t.tagName, color: '#000000' };
+    });
 
     return {
       id: event.id,

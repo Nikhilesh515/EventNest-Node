@@ -1,3 +1,4 @@
+import type { Logger } from 'pino';
 import type { CachePort } from '../../../shared/application/ports/cache-port.js';
 import {
   PERMISSION_CATALOG,
@@ -31,6 +32,7 @@ export class PermissionService {
     private readonly grants: GrantRepository,
     private readonly users: UserRepository,
     private readonly cache: CachePort,
+    private readonly logger?: Logger,
   ) {}
 
   getCatalog(): PermissionDto[] {
@@ -144,6 +146,10 @@ export class PermissionService {
   }
 
   private async invalidateCache(userId: string): Promise<void> {
-    await this.cache.delete(`user:${userId}:permissions`);
+    try {
+      await this.cache.delete(`user:${userId}:permissions`);
+    } catch (error) {
+      this.logger?.warn({ error, userId }, 'Failed to invalidate permission cache');
+    }
   }
 }

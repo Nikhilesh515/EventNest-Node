@@ -7,7 +7,7 @@ Full documentation lives in [`docs-exp/`](../docs-exp/README.md) — start with 
 [API Reference](../docs-exp/Architecture%20Plan/11-API-Reference.md) and
 [Implementation Plan](../docs-exp/Architecture%20Plan/12-Implementation-Plan.md).
 
-**Status:** Phase P0 — scaffold only (health endpoint; no database, modules, or middleware chain yet).
+**Status:** M0011 complete — Quality & Resilience milestone (FK constraints, transactions, N+1 fixes, non-null guard pattern).
 
 ## Prerequisites
 

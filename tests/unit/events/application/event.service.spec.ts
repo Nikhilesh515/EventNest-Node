@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import type { Knex } from 'knex';
 import { EventService } from '../../../../src/modules/events/application/event.service.js';
 import type { EventRepository } from '../../../../src/modules/events/application/event.repository.js';
 import type { TagLookupPort } from '../../../../src/modules/tags/application/ports/tag-lookup.port.js';
@@ -10,6 +11,12 @@ import {
   InvalidTagError,
 } from '../../../../src/modules/events/domain/errors.js';
 import type { Event } from '../../../../src/modules/events/domain/event.js';
+
+function createMockKnex(): Knex {
+  return {
+    transaction: vi.fn(async (fn: (trx: unknown) => Promise<unknown>) => fn({})),
+  } as unknown as Knex;
+}
 
 function createMockRepo(): EventRepository {
   const store = new Map<string, Event>();
@@ -67,16 +74,18 @@ function createMockUserLookup(): UserLookupPort {
 }
 
 describe('EventService', () => {
+  let knex: Knex;
   let repo: EventRepository;
   let tagLookup: TagLookupPort;
   let userLookup: UserLookupPort;
   let service: EventService;
 
   beforeEach(() => {
+    knex = createMockKnex();
     repo = createMockRepo();
     tagLookup = createMockTagLookup();
     userLookup = createMockUserLookup();
-    service = new EventService(repo, tagLookup, userLookup);
+    service = new EventService(knex, repo, tagLookup, userLookup);
   });
 
   const createInput = {

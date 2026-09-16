@@ -48,6 +48,10 @@ export class RefreshToken {
     });
   }
 
+  static reconstitute(props: RefreshTokenProps): RefreshToken {
+    return new RefreshToken(props);
+  }
+
   revoke(replacedByHash?: string): void {
     this.revokedAt = new Date();
     this.replacedByTokenHash = replacedByHash ?? null;

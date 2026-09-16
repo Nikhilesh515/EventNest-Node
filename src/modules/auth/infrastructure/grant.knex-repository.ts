@@ -25,11 +25,7 @@ function rowToProps(row: GrantRow): PermissionGrantProps {
 }
 
 function hydrateGrant(row: GrantRow): PermissionGrant {
-  return new (
-    PermissionGrant as unknown as {
-      new (props: PermissionGrantProps): PermissionGrant;
-    }
-  )(rowToProps(row));
+  return PermissionGrant.reconstitute(rowToProps(row));
 }
 
 export class KnexGrantRepository implements GrantRepository {
