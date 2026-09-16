@@ -74,6 +74,7 @@ export class Event {
     organizerId: string;
     organizerName: string;
     tags?: EventTagSnapshot[];
+    visibility?: EventVisibility | undefined;
   }): Event {
     return new Event({
       id: crypto.randomUUID(),
@@ -86,7 +87,7 @@ export class Event {
       organizerId: input.organizerId,
       organizerName: input.organizerName,
       status: 'Draft',
-      visibility: 'Public',
+      visibility: input.visibility ?? 'Public',
       tags: input.tags ?? [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -120,6 +121,7 @@ export class Event {
     endsAt: Date;
     capacity: number;
     tags: EventTagSnapshot[];
+    visibility?: EventVisibility | undefined;
   }): void {
     this.title = input.title;
     this.description = input.description ?? null;
@@ -128,6 +130,9 @@ export class Event {
     this.endsAt = input.endsAt;
     this.capacity = input.capacity;
     this.tags = input.tags;
+    if (input.visibility) {
+      this.visibility = input.visibility;
+    }
     this.updatedAt = new Date();
   }
 }

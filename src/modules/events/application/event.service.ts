@@ -40,6 +40,7 @@ export class EventService implements EventLookupPort {
       organizerId: userId,
       organizerName: userName,
       tags: tagSnapshots,
+      visibility: input.visibility,
     });
 
     const created = await this.events.create(event);
@@ -146,6 +147,7 @@ export class EventService implements EventLookupPort {
       endsAt: new Date(input.endsAt),
       capacity: input.capacity,
       tags: tagSnapshots,
+      visibility: input.visibility,
     });
 
     const updated = await this.events.update(event);

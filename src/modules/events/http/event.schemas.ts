@@ -10,6 +10,7 @@ export const createEventSchema: ValidationSchemas = {
     endsAt: z.string().datetime(),
     capacity: z.number().int().min(1),
     tagIds: z.array(z.string().uuid()).optional(),
+    visibility: z.enum(['Public', 'Private']).optional(),
   }),
 };
 
@@ -23,6 +24,7 @@ export const updateEventSchema: ValidationSchemas = {
     endsAt: z.string().datetime(),
     capacity: z.number().int().min(1),
     tagIds: z.array(z.string().uuid()).optional(),
+    visibility: z.enum(['Public', 'Private']).optional(),
   }),
 };
 

@@ -102,6 +102,7 @@ export class KnexUserRepository implements UserRepository {
     const offset = (page - 1) * pageSize;
     const rows = await this.knex('users')
       .join('roles', 'users.role_id', 'roles.id')
+      .where('users.is_active', true)
       .select(...USER_COLUMNS)
       .orderBy('users.created_at', 'desc')
       .limit(pageSize)

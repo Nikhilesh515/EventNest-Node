@@ -39,6 +39,7 @@ export interface CreateEventInput {
   endsAt: string;
   capacity: number;
   tagIds?: string[];
+  visibility?: 'Public' | 'Private';
 }
 
 export type UpdateEventInput = CreateEventInput;

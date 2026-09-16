@@ -10,6 +10,8 @@ import { securityHeaders } from './shared/http/middleware/helmet.js';
 import { compress } from './shared/http/middleware/compress.js';
 import { healthHandler, type HealthDeps } from './shared/http/health.js';
 import { mountApiDocs } from './shared/http/openapi/serve.js';
+// Register all OpenAPI route definitions before the document is generated
+import './shared/http/openapi/routes.js';
 
 export interface AppDependencies {
   config: AppConfig;
