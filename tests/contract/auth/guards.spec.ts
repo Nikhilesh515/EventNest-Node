@@ -3,16 +3,23 @@ import jwt from 'jsonwebtoken';
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import express from 'express';
 import { requireAuth } from '../../../src/shared/http/middleware/require-auth.js';
-import { requirePermission, setPermissionCache } from '../../../src/shared/http/middleware/require-permission.js';
+import {
+  requirePermission,
+  setPermissionCache,
+  setPermissionResolver,
+} from '../../../src/shared/http/middleware/require-permission.js';
 import { attachUserIfPresent } from '../../../src/shared/http/middleware/attach-user-if-present.js';
 import { ok } from '../../../src/shared/http/respond.js';
 import { errorHandler } from '../../../src/shared/http/middleware/error-handler.js';
+import { ForbiddenError } from '../../../src/shared/domain/errors.js';
 import { pino } from 'pino';
 import { testConfig } from '../../helpers/app.js';
 import type { CachePort } from '../../../src/shared/application/ports/cache-port.js';
 
 const config = testConfig();
 const logger = pino({ level: 'silent' });
+
+type RequestWithUser = express.Request & { user?: unknown };
 
 function createInMemoryCache(): CachePort {
   const store = new Map<string, { value: unknown; expiresAt: number | null }>();
@@ -69,7 +76,7 @@ function buildGuardTestApp(
   app.use(express.json());
 
   app.get('/api/guarded', ...middlewares, (req, res) => {
-    ok(res, { user: (req as any).user });
+    ok(res, { user: (req as RequestWithUser).user });
   });
 
   app.use(errorHandler(logger));
@@ -240,6 +247,105 @@ describe('requirePermission guard', () => {
     expect(res.status).toBe(403);
     expect(res.body.success).toBe(false);
   });
+
+  it('returns 403 when no permission cache is configured', async () => {
+    setPermissionCache(null as unknown as CachePort);
+    const app = buildGuardTestApp(
+      [requireAuth, requirePermission('Events.View')],
+    );
+
+    const token = generateToken({
+      sub: 'user-nocache',
+      email: 'nocache@test.com',
+      name: 'No Cache User',
+      role: 'User',
+      jti: 'jti-nocache',
+    });
+
+    const res = await request(app)
+      .get('/api/guarded')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+
+    setPermissionCache(createInMemoryCache());
+  });
+
+  it('resolves permissions and warms the cache on a cache miss', async () => {
+    const cache = createInMemoryCache();
+    setPermissionCache(cache);
+    setPermissionResolver(async () => ['Events.View']);
+    const app = buildGuardTestApp(
+      [requireAuth, requirePermission('Events.View')],
+    );
+
+    const token = generateToken({
+      sub: 'user-miss',
+      email: 'miss@test.com',
+      name: 'Cache Miss User',
+      role: 'User',
+      jti: 'jti-miss',
+    });
+
+    const res = await request(app)
+      .get('/api/guarded')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(await cache.get<string[]>('user:user-miss:permissions')).toEqual(['Events.View']);
+  });
+
+  it('forwards domain errors thrown by the resolver', async () => {
+    const cache = createInMemoryCache();
+    setPermissionCache(cache);
+    setPermissionResolver(async () => {
+      throw new ForbiddenError('Permission denied.');
+    });
+    const app = buildGuardTestApp(
+      [requireAuth, requirePermission('Events.View')],
+    );
+
+    const token = generateToken({
+      sub: 'user-throw-domain',
+      email: 'throw-domain@test.com',
+      name: 'Domain Throw User',
+      role: 'User',
+      jti: 'jti-throw-domain',
+    });
+
+    const res = await request(app)
+      .get('/api/guarded')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it('maps unexpected resolver failures to 500', async () => {
+    const cache = createInMemoryCache();
+    setPermissionCache(cache);
+    setPermissionResolver(async () => {
+      throw new Error('boom');
+    });
+    const app = buildGuardTestApp(
+      [requireAuth, requirePermission('Events.View')],
+    );
+
+    const token = generateToken({
+      sub: 'user-throw-unexpected',
+      email: 'throw-unexpected@test.com',
+      name: 'Unexpected Throw User',
+      role: 'User',
+      jti: 'jti-throw-unexpected',
+    });
+
+    const res = await request(app)
+      .get('/api/guarded')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(500);
+    expect(res.body.message).toBe('Permission check failed.');
+  });
 });
 
 describe('attachUserIfPresent middleware', () => {
@@ -249,7 +355,7 @@ describe('attachUserIfPresent middleware', () => {
     app.use(express.json());
 
     app.get('/api/guarded', attachUserIfPresent, (req, res) => {
-      ok(res, { user: (req as any).user ?? null });
+      ok(res, { user: (req as RequestWithUser).user ?? null });
     });
 
     app.use(errorHandler(logger));
@@ -266,7 +372,7 @@ describe('attachUserIfPresent middleware', () => {
     app.use(express.json());
 
     app.get('/api/guarded', attachUserIfPresent, (req, res) => {
-      ok(res, { user: (req as any).user ?? null });
+      ok(res, { user: (req as RequestWithUser).user ?? null });
     });
 
     app.use(errorHandler(logger));
@@ -299,7 +405,7 @@ describe('attachUserIfPresent middleware', () => {
     app.use(express.json());
 
     app.get('/api/guarded', attachUserIfPresent, (req, res) => {
-      ok(res, { user: (req as any).user ?? null });
+      ok(res, { user: (req as RequestWithUser).user ?? null });
     });
 
     app.use(errorHandler(logger));
@@ -318,7 +424,7 @@ describe('attachUserIfPresent middleware', () => {
     app.use(express.json());
 
     app.get('/api/guarded', attachUserIfPresent, (req, res) => {
-      ok(res, { user: (req as any).user ?? null });
+      ok(res, { user: (req as RequestWithUser).user ?? null });
     });
 
     app.use(errorHandler(logger));
@@ -328,5 +434,22 @@ describe('attachUserIfPresent middleware', () => {
       .set('Authorization', 'Bearer totally-invalid');
 
     expect(res.status).toBe(200);
+  });
+
+  it('proceeds without req.user when the bearer token is empty', async () => {
+    const app = express();
+    app.disable('x-powered-by');
+    app.use(express.json());
+
+    app.get('/api/guarded', attachUserIfPresent, (req, res) => {
+      ok(res, { user: (req as RequestWithUser).user ?? null });
+    });
+
+    app.use(errorHandler(logger));
+
+    const res = await request(app).get('/api/guarded').set('Authorization', 'Bearer ');
+
+    expect(res.status).toBe(200);
+    expect(res.body.result.user).toBeNull();
   });
 });

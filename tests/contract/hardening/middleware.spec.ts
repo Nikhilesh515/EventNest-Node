@@ -9,7 +9,6 @@ import { loginUser } from '../../helpers/auth-helpers.js';
 import { createApp } from '../../../src/app.js';
 import { testConfig, testLogger } from '../../helpers/app.js';
 import { buildKnex } from '../../../src/shared/infrastructure/db/knex.js';
-import { healthHandler } from '../../../src/shared/http/health.js';
 import { buildRateLimiter } from '../../../src/shared/http/middleware/rate-limiter.js';
 
 let ctx: TestAppContext;

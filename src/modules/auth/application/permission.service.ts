@@ -50,7 +50,6 @@ export class PermissionService {
     }
 
     const roleName = user.roleName ?? 'User';
-    const basePerms = new Set<string>(basePermissionsForRole(roleName));
     const grants = await this.grants.findActiveByUser(userId);
     const directGrants = new Set<string>(
       grants.filter((g) => !g.isExpired(new Date())).map((g) => g.permissionName),

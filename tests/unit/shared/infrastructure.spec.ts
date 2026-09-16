@@ -144,4 +144,60 @@ describe('registerShutdownHandlers', () => {
     cleanupSigint();
     cleanupSigterm();
   });
+
+  it('logs and exits 1 when the http server fails to close', () => {
+    vi.useFakeTimers();
+    const exit = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+    const cleanupSigint = captureAddedListeners('SIGINT');
+    const cleanupSigterm = captureAddedListeners('SIGTERM');
+    const closeError = new Error('close failed');
+    const server = {
+      close: (callback: (error?: Error) => void) => {
+        callback(closeError);
+      },
+    } as unknown as Server;
+    const logger = fakeLogger();
+
+    registerShutdownHandlers(server, logger);
+    process.emit('SIGTERM', 'SIGTERM');
+
+    expect(logger.error).toHaveBeenCalledWith(
+      { err: closeError },
+      'error while closing the http server',
+    );
+    vi.advanceTimersByTime(300);
+    expect(exit).toHaveBeenCalledWith(1);
+
+    cleanupSigint();
+    cleanupSigterm();
+  });
+
+  it('logs cleanup failures and exits 1', async () => {
+    vi.useFakeTimers();
+    const exit = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
+    const cleanupSigint = captureAddedListeners('SIGINT');
+    const cleanupSigterm = captureAddedListeners('SIGTERM');
+    let closeCallback: ((error?: Error) => void) | undefined;
+    const server = {
+      close: (callback: (error?: Error) => void) => {
+        closeCallback = callback;
+      },
+    } as unknown as Server;
+    const logger = fakeLogger();
+    const cleanupError = new Error('cleanup failed');
+    const cleanup = vi.fn().mockRejectedValue(cleanupError);
+
+    registerShutdownHandlers(server, logger, cleanup);
+    process.emit('SIGINT', 'SIGINT');
+    closeCallback?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(logger.error).toHaveBeenCalledWith({ err: cleanupError }, 'error during cleanup');
+    vi.advanceTimersByTime(300);
+    expect(exit).toHaveBeenCalledWith(1);
+
+    cleanupSigint();
+    cleanupSigterm();
+  });
 });
