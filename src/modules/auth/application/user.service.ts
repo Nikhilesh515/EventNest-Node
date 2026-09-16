@@ -1,10 +1,6 @@
 import bcrypt from 'bcrypt';
 import { User } from '../domain/user.js';
-import {
-  NotFoundError,
-  ConflictError,
-  ValidationError,
-} from '../../../shared/domain/errors.js';
+import { NotFoundError, ConflictError, ValidationError } from '../../../shared/domain/errors.js';
 import type { UserRepository } from './auth.repository.js';
 import type { GrantRepository } from './grant.repository.js';
 import type { RoleRepository } from './role.repository.js';

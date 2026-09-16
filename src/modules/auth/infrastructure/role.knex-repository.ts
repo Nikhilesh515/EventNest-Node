@@ -37,14 +37,17 @@ export class KnexRoleRepository implements RoleRepository {
   }
 
   async countUsersByRole(roleId: string): Promise<number> {
-    const result = (await this.knex('users').where({ role_id: roleId }).count('id as cnt').first()) as
-      | { cnt: string | number }
-      | undefined;
+    const result = (await this.knex('users')
+      .where({ role_id: roleId })
+      .count('id as cnt')
+      .first()) as { cnt: string | number } | undefined;
     return Number(result?.cnt ?? 0);
   }
 
   async getPermissionNames(roleId: string): Promise<string[]> {
-    const rows = await this.knex('role_permissions').where({ role_id: roleId }).select('permission_name');
+    const rows = await this.knex('role_permissions')
+      .where({ role_id: roleId })
+      .select('permission_name');
     return rows.map((r: { permission_name: string }) => r.permission_name);
   }
 

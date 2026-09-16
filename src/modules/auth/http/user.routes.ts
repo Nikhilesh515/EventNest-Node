@@ -2,11 +2,7 @@ import { Router } from 'express';
 import { validate } from '../../../shared/http/middleware/validate.js';
 import { requireAuth } from '../../../shared/http/middleware/require-auth.js';
 import { requirePermission } from '../../../shared/http/middleware/require-permission.js';
-import {
-  updateUserSchema,
-  listUsersSchema,
-  createAdminUserSchema,
-} from './user.schemas.js';
+import { updateUserSchema, listUsersSchema, createAdminUserSchema } from './user.schemas.js';
 import { createUserController } from './user.controller.js';
 
 export function createUserRoutes(userService: Parameters<typeof createUserController>[0]) {

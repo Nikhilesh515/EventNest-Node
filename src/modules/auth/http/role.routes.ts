@@ -2,7 +2,12 @@ import { Router } from 'express';
 import { validate } from '../../../shared/http/middleware/validate.js';
 import { requireAuth } from '../../../shared/http/middleware/require-auth.js';
 import { requirePermission } from '../../../shared/http/middleware/require-permission.js';
-import { createRoleSchema, updateRoleSchema, roleIdParamSchema, assignUserRoleSchema } from './role.schemas.js';
+import {
+  createRoleSchema,
+  updateRoleSchema,
+  roleIdParamSchema,
+  assignUserRoleSchema,
+} from './role.schemas.js';
 import { createRoleController } from './role.controller.js';
 
 export function createRoleRoutes(roleService: Parameters<typeof createRoleController>[0]) {

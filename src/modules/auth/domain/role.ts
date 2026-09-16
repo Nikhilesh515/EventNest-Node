@@ -1,12 +1,6 @@
 export type RoleName = 'User' | 'Organizer' | 'Moderator' | 'Admin' | 'SuperAdmin';
 
-const ROLE_NAME_SET = new Set<string>([
-  'User',
-  'Organizer',
-  'Moderator',
-  'Admin',
-  'SuperAdmin',
-]);
+const ROLE_NAME_SET = new Set<string>(['User', 'Organizer', 'Moderator', 'Admin', 'SuperAdmin']);
 
 export interface RoleProps {
   id: string;

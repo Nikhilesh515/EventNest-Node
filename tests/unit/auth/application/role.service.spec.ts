@@ -4,7 +4,11 @@ import { Role } from '../../../../src/modules/auth/domain/role.js';
 import type { RoleRepository } from '../../../../src/modules/auth/application/role.repository.js';
 import type { UserRepository } from '../../../../src/modules/auth/application/auth.repository.js';
 import type { CachePort } from '../../../../src/shared/application/ports/cache-port.js';
-import { NotFoundError, ConflictError, ValidationError } from '../../../../src/shared/domain/errors.js';
+import {
+  NotFoundError,
+  ConflictError,
+  ValidationError,
+} from '../../../../src/shared/domain/errors.js';
 import { User } from '../../../../src/modules/auth/domain/user.js';
 
 function createMockRoleRepo(): RoleRepository {
@@ -13,7 +17,9 @@ function createMockRoleRepo(): RoleRepository {
   const userCounts = new Map<string, number>();
 
   return {
-    findAll: vi.fn(async () => Array.from(store.values()).sort((a, b) => a.sortOrder - b.sortOrder)),
+    findAll: vi.fn(async () =>
+      Array.from(store.values()).sort((a, b) => a.sortOrder - b.sortOrder),
+    ),
     findById: vi.fn(async (id: string) => store.get(id) ?? null),
     findByName: vi.fn(async (name: string) => {
       for (const role of store.values()) {
@@ -45,14 +51,22 @@ function createMockUserRepo(): UserRepository {
   return {
     findByEmail: vi.fn(async () => null),
     findById: vi.fn(async (id: string) => store.get(id) ?? null),
-    create: vi.fn(async (user: User) => { store.set(user.id, user); return user; }),
-    update: vi.fn(async (user: User) => { store.set(user.id, user); return user; }),
+    create: vi.fn(async (user: User) => {
+      store.set(user.id, user);
+      return user;
+    }),
+    update: vi.fn(async (user: User) => {
+      store.set(user.id, user);
+      return user;
+    }),
     list: vi.fn(async () => Array.from(store.values())),
     count: vi.fn(async () => store.size),
-    listPaginated: vi.fn(async (query: { page: number; pageSize: number; search?: string; role?: string }) => {
-      const items = Array.from(store.values());
-      return { items, total: items.length };
-    }),
+    listPaginated: vi.fn(
+      async (_query: { page: number; pageSize: number; search?: string; role?: string }) => {
+        const items = Array.from(store.values());
+        return { items, total: items.length };
+      },
+    ),
     findRoleByName: vi.fn(async () => null),
     updateRoleId: vi.fn(async () => {}),
     findByRoleId: vi.fn(async () => []),
@@ -62,10 +76,18 @@ function createMockUserRepo(): UserRepository {
 function createMockCache(): CachePort {
   const store = new Map<string, unknown>();
   return {
-    async get<T>(key: string): Promise<T | null> { return (store.get(key) as T) ?? null; },
-    async set<T>(key: string, value: T): Promise<void> { store.set(key, value); },
-    async delete(key: string): Promise<void> { store.delete(key); },
-    async close(): Promise<void> { store.clear(); },
+    async get<T>(key: string): Promise<T | null> {
+      return (store.get(key) as T) ?? null;
+    },
+    async set<T>(key: string, value: T): Promise<void> {
+      store.set(key, value);
+    },
+    async delete(key: string): Promise<void> {
+      store.delete(key);
+    },
+    async close(): Promise<void> {
+      store.clear();
+    },
   };
 }
 

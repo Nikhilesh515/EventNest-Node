@@ -14,15 +14,3 @@ export const loginSchema = {
     password: z.string().min(1),
   }),
 };
-
-export const refreshSchema = {
-  body: z.object({
-    refreshToken: z.string().min(1),
-  }),
-};
-
-export const logoutSchema = {
-  body: z.object({
-    refreshToken: z.string().min(1),
-  }),
-};

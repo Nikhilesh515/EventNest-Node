@@ -6,6 +6,7 @@ import {
   resetTestData,
   type TestAppContext,
 } from '../../helpers/test-setup.js';
+import { setCookieHeaders, REFRESH_COOKIE } from '../../helpers/auth-helpers.js';
 
 let ctx: TestAppContext;
 
@@ -37,7 +38,6 @@ describe('POST /api/auth/register', () => {
       errors: null,
       result: expect.objectContaining({
         accessToken: expect.any(String),
-        refreshToken: expect.any(String),
         expiresIn: 3600,
         user: expect.objectContaining({
           id: expect.any(String),
@@ -48,6 +48,23 @@ describe('POST /api/auth/register', () => {
         }),
       }),
     });
+    expect(res.body.result.refreshToken).toBeUndefined();
+  });
+
+  it('sets an HttpOnly refresh cookie and never returns the token in the body', async () => {
+    const res = await request(ctx.app).post('/api/auth/register').send({
+      email: 'register-cookie@test.example.com',
+      password: 'password123',
+      displayName: 'Cookie User',
+    });
+
+    const refresh = setCookieHeaders(res).find((c) => c.startsWith(`${REFRESH_COOKIE}=`));
+
+    expect(refresh).toBeDefined();
+    expect(refresh).toContain('HttpOnly');
+    expect(refresh).toContain('SameSite=Lax');
+    expect(refresh).toContain('Path=/api/auth');
+    expect(res.body.result).not.toHaveProperty('refreshToken');
   });
 
   it('returns 409 with duplicate email', async () => {
@@ -111,9 +128,9 @@ describe('POST /api/auth/register', () => {
 
     const result = res.body.result;
     expect(result).toHaveProperty('accessToken');
-    expect(result).toHaveProperty('refreshToken');
     expect(result).toHaveProperty('expiresIn');
     expect(result).toHaveProperty('user');
+    expect(result).not.toHaveProperty('refreshToken');
 
     expect(result.user).toHaveProperty('id');
     expect(result.user).toHaveProperty('email');
@@ -123,8 +140,6 @@ describe('POST /api/auth/register', () => {
 
     expect(typeof result.accessToken).toBe('string');
     expect(result.accessToken.length).toBeGreaterThan(0);
-    expect(typeof result.refreshToken).toBe('string');
-    expect(result.refreshToken.length).toBeGreaterThan(0);
     expect(typeof result.expiresIn).toBe('number');
   });
 

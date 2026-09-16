@@ -113,4 +113,83 @@ describe('OpenAPI', () => {
 
     await knex.destroy();
   });
+
+  it('documents cookie-based refresh and logout without request bodies', async () => {
+    const knex = buildKnex(testConfig().DATABASE_URL);
+    const config = { ...testConfig(), OPENAPI_ENABLED: true };
+    const app = createApp({
+      config,
+      logger: testLogger(),
+      health: { knex, redisClient: null },
+      rateLimiter: buildRateLimiter(config.RATE_LIMIT_PER_MINUTE),
+    });
+
+    const res = await request(app).get('/api-docs/json');
+    const doc = res.body;
+
+    expect(doc.components?.securitySchemes?.refreshCookie).toEqual({
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'eventnest.refresh_token',
+    });
+
+    const refresh = doc.paths['/api/auth/refresh'].post;
+    expect(refresh.requestBody).toBeUndefined();
+    expect(refresh.security).toEqual([{ refreshCookie: [] }]);
+    expect(refresh.responses['401']).toBeDefined();
+    expect(refresh.responses['403']).toBeDefined();
+    expect(refresh.responses['200'].headers['Set-Cookie']).toBeDefined();
+
+    const logout = doc.paths['/api/auth/logout'].post;
+    expect(logout.requestBody).toBeUndefined();
+    expect(logout.security).toEqual([{ refreshCookie: [] }]);
+    expect(logout.responses['204']).toBeDefined();
+    expect(logout.responses['403']).toBeDefined();
+
+    await knex.destroy();
+  });
+});
+
+describe('CORS credentials', () => {
+  it('allows credentials for an allowlisted origin and never echoes a wildcard', async () => {
+    const knex = buildKnex(testConfig().DATABASE_URL);
+    const config = { ...testConfig(), CORS_ORIGINS: ['http://localhost:5173'] };
+    const app = createApp({
+      config,
+      logger: testLogger(),
+      health: { knex, redisClient: null },
+      rateLimiter: buildRateLimiter(config.RATE_LIMIT_PER_MINUTE),
+    });
+
+    const res = await request(app)
+      .options('/api/auth/refresh')
+      .set('Origin', 'http://localhost:5173')
+      .set('Access-Control-Request-Method', 'POST');
+
+    expect(res.headers['access-control-allow-credentials']).toBe('true');
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(res.headers['access-control-allow-origin']).not.toBe('*');
+
+    await knex.destroy();
+  });
+
+  it('does not allow credentials for a disallowed origin', async () => {
+    const knex = buildKnex(testConfig().DATABASE_URL);
+    const config = { ...testConfig(), CORS_ORIGINS: ['http://localhost:5173'] };
+    const app = createApp({
+      config,
+      logger: testLogger(),
+      health: { knex, redisClient: null },
+      rateLimiter: buildRateLimiter(config.RATE_LIMIT_PER_MINUTE),
+    });
+
+    const res = await request(app)
+      .options('/api/auth/refresh')
+      .set('Origin', 'https://evil.example')
+      .set('Access-Control-Request-Method', 'POST');
+
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
+
+    await knex.destroy();
+  });
 });

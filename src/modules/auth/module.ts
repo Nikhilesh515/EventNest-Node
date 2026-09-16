@@ -45,6 +45,7 @@ export function buildAuthModule(deps: AuthModuleDeps) {
     JWT_AUDIENCE: config.JWT_AUDIENCE,
     JWT_ACCESS_EXPIRY_MINUTES: config.JWT_ACCESS_EXPIRY_MINUTES,
     JWT_REFRESH_EXPIRY_DAYS: config.JWT_REFRESH_EXPIRY_DAYS,
+    REFRESH_ROTATION_GRACE_SECONDS: config.REFRESH_ROTATION_GRACE_SECONDS,
   };
 
   const authService = new AuthService(
@@ -79,13 +80,12 @@ export function buildAuthModule(deps: AuthModuleDeps) {
 
     const basePerms = basePermissionsForRole(roleName);
     const grants = await grantRepo.findActiveByUser(userId);
-    const extraPerms = grants
-      .filter((g) => !g.isExpired(new Date()))
-      .map((g) => g.permissionName);
+    const extraPerms = grants.filter((g) => !g.isExpired(new Date())).map((g) => g.permissionName);
     return [...new Set([...basePerms, ...extraPerms])];
   });
 
-  const authRouter = createAuthRoutes(authService);
+  const cookieSecure = config.COOKIE_SECURE ?? config.NODE_ENV === 'production';
+  const authRouter = createAuthRoutes(authService, { ...config, COOKIE_SECURE: cookieSecure });
   const userRouter = createUserRoutes(userService);
   const permissionRouter = createPermissionRoutes(permissionService);
   const roleRouter = createRoleRoutes(roleService);

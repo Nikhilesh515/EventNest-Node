@@ -9,22 +9,15 @@ export async function up(knex: Knex): Promise<void> {
     t.unique(['role_id', 'permission_name']);
   });
 
-  await knex.schema.raw(
-    'CREATE INDEX idx_role_permissions_role_id ON role_permissions(role_id)',
-  );
+  await knex.schema.raw('CREATE INDEX idx_role_permissions_role_id ON role_permissions(role_id)');
 
   const roles = await knex('roles').select('id', 'name');
-  const roleMap = Object.fromEntries(roles.map((r: { id: string; name: string }) => [r.name, r.id]));
+  const roleMap = Object.fromEntries(
+    roles.map((r: { id: string; name: string }) => [r.name, r.id]),
+  );
 
   const ROLE_DEFAULTS: Record<string, string[]> = {
-    User: [
-      'Events.View',
-      'Tags.View',
-      'RSVPs.View',
-      'RSVPs.Create',
-      'RSVPs.Edit',
-      'RSVPs.Cancel',
-    ],
+    User: ['Events.View', 'Tags.View', 'RSVPs.View', 'RSVPs.Create', 'RSVPs.Edit', 'RSVPs.Cancel'],
     Organizer: [
       'Events.View',
       'Events.Create',

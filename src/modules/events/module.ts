@@ -19,7 +19,13 @@ export interface EventsModuleDeps {
 
 export function buildEventsModule(deps: EventsModuleDeps) {
   const eventRepo = new KnexEventRepository(deps.knex);
-  const eventService = new EventService(deps.knex, eventRepo, deps.tagLookup, deps.userLookup, deps.rsvpStats);
+  const eventService = new EventService(
+    deps.knex,
+    eventRepo,
+    deps.tagLookup,
+    deps.userLookup,
+    deps.rsvpStats,
+  );
   const eventRouter = createEventRoutes(eventService);
 
   return {

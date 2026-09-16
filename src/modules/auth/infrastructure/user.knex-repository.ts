@@ -122,7 +122,9 @@ export class KnexUserRepository implements UserRepository {
   }
 
   async updateRoleId(userId: string, roleId: string): Promise<void> {
-    await this.knex('users').where({ id: userId }).update({ role_id: roleId, updated_at: new Date() });
+    await this.knex('users')
+      .where({ id: userId })
+      .update({ role_id: roleId, updated_at: new Date() });
   }
 
   async findByRoleId(roleId: string): Promise<User[]> {

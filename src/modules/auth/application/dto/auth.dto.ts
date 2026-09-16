@@ -8,7 +8,11 @@ export interface AuthUserDto {
 
 export interface AuthResponseDto {
   accessToken: string;
-  refreshToken: string;
   expiresIn: number;
   user: AuthUserDto;
+}
+
+export interface AuthSessionResult {
+  body: AuthResponseDto;
+  refreshToken: string;
 }

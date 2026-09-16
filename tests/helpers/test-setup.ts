@@ -36,13 +36,15 @@ export function testConfig(overrides: Record<string, string> = {}): AppConfig {
     JWT_AUDIENCE: 'EventNest',
     JWT_ACCESS_EXPIRY_MINUTES: '60',
     JWT_REFRESH_EXPIRY_DAYS: '30',
+    REFRESH_ROTATION_GRACE_SECONDS: '0',
     LOG_LEVEL: 'silent',
     ...overrides,
   } as NodeJS.ProcessEnv);
 }
 
 export function testLogger(): Logger {
-  return pino({ level: 'silent' });
+  const level = process.env.TEST_LOG_LEVEL ?? 'silent';
+  return pino({ level });
 }
 
 export function createInMemoryCache(): CachePort {
@@ -73,10 +75,7 @@ export function createInMemoryCache(): CachePort {
 
 let sharedCtx: TestAppContext | null = null;
 
-export async function getSharedTestApp(): Promise<TestAppContext> {
-  if (sharedCtx) return sharedCtx;
-
-  const config = testConfig();
+export async function buildTestApp(config: AppConfig): Promise<TestAppContext> {
   const logger = testLogger();
   const knex = buildKnex(config.DATABASE_URL);
   const cache = createInMemoryCache();
@@ -139,15 +138,26 @@ export async function getSharedTestApp(): Promise<TestAppContext> {
   app.use(notFound());
   app.use(errorHandler(logger));
 
-  sharedCtx = { app, knex, config, logger, cache };
+  return { app, knex, config, logger, cache };
+}
+
+export async function destroyTestApp(ctx: TestAppContext): Promise<void> {
+  await ctx.cache.close();
+  await destroyKnex(ctx.knex);
+}
+
+export async function getSharedTestApp(): Promise<TestAppContext> {
+  if (sharedCtx) return sharedCtx;
+
+  sharedCtx = await buildTestApp(testConfig());
   return sharedCtx;
 }
 
 export async function destroySharedTestApp(): Promise<void> {
   if (!sharedCtx) return;
-  await sharedCtx.cache.close();
-  await destroyKnex(sharedCtx.knex);
+  const ctx = sharedCtx;
   sharedCtx = null;
+  await destroyTestApp(ctx);
 }
 
 export async function resetTestData(knex: Knex): Promise<void> {
@@ -164,7 +174,9 @@ export async function resetTestData(knex: Knex): Promise<void> {
     .del();
   await knex('role_permissions')
     .whereNotIn('role_id', function () {
-      this.select('id').from('roles').whereIn('name', ['User', 'Organizer', 'Moderator', 'Admin', 'SuperAdmin']);
+      this.select('id')
+        .from('roles')
+        .whereIn('name', ['User', 'Organizer', 'Moderator', 'Admin', 'SuperAdmin']);
     })
     .del();
   await knex('roles')

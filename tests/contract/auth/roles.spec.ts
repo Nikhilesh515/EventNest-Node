@@ -48,9 +48,7 @@ describe('Roles API', () => {
 
   describe('GET /api/roles', () => {
     it('returns all roles for admin', async () => {
-      const res = await request(app)
-        .get('/api/roles')
-        .set('Authorization', `Bearer ${adminToken}`);
+      const res = await request(app).get('/api/roles').set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -70,9 +68,7 @@ describe('Roles API', () => {
     });
 
     it('rejects regular user', async () => {
-      const res = await request(app)
-        .get('/api/roles')
-        .set('Authorization', `Bearer ${userToken}`);
+      const res = await request(app).get('/api/roles').set('Authorization', `Bearer ${userToken}`);
       expect(res.status).toBe(403);
     });
   });

@@ -37,7 +37,7 @@ export function createApp(deps: AppDependencies): Express {
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
       exposedHeaders: ['X-Request-Id', 'Location', 'Retry-After'],
-      credentials: false,
+      credentials: true,
     }),
   );
   app.use(deps.rateLimiter ?? noopHandler);

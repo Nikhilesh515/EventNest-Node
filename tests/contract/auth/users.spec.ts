@@ -37,9 +37,7 @@ describe('Users API', () => {
     });
     userToken = userLogin.body.result.accessToken;
 
-    const roles = await request(app)
-      .get('/api/roles')
-      .set('Authorization', `Bearer ${adminToken}`);
+    const roles = await request(app).get('/api/roles').set('Authorization', `Bearer ${adminToken}`);
     const userRole = roles.body.result.find((r: { name: string }) => r.name === 'User');
     const adminRole = roles.body.result.find((r: { name: string }) => r.name === 'Admin');
     userRoleId = userRole.id;
@@ -56,9 +54,7 @@ describe('Users API', () => {
 
   describe('GET /api/users (paginated)', () => {
     it('returns paginated results with default params', async () => {
-      const res = await request(app)
-        .get('/api/users')
-        .set('Authorization', `Bearer ${adminToken}`);
+      const res = await request(app).get('/api/users').set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -72,9 +68,7 @@ describe('Users API', () => {
     });
 
     it('returns roleId in each item', async () => {
-      const res = await request(app)
-        .get('/api/users')
-        .set('Authorization', `Bearer ${adminToken}`);
+      const res = await request(app).get('/api/users').set('Authorization', `Bearer ${adminToken}`);
 
       expect(res.status).toBe(200);
       const firstUser = res.body.result.items[0];
@@ -132,9 +126,7 @@ describe('Users API', () => {
     });
 
     it('rejects regular user', async () => {
-      const res = await request(app)
-        .get('/api/users')
-        .set('Authorization', `Bearer ${userToken}`);
+      const res = await request(app).get('/api/users').set('Authorization', `Bearer ${userToken}`);
       expect(res.status).toBe(403);
     });
   });
@@ -160,15 +152,12 @@ describe('Users API', () => {
     });
 
     it('rejects duplicate email', async () => {
-      await request(app)
-        .post('/api/users')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({
-          email: 'dup@test.example.com',
-          displayName: 'First User',
-          password: 'password123',
-          roleId: userRoleId,
-        });
+      await request(app).post('/api/users').set('Authorization', `Bearer ${adminToken}`).send({
+        email: 'dup@test.example.com',
+        displayName: 'First User',
+        password: 'password123',
+        roleId: userRoleId,
+      });
 
       const res = await request(app)
         .post('/api/users')

@@ -33,6 +33,11 @@ const envSchema = z.object({
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(100),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   OPENAPI_ENABLED: booleanFromString,
+  COOKIE_SECURE: z
+    .enum(['true', 'false', '1', '0'])
+    .optional()
+    .transform((value) => (value === undefined ? undefined : value === 'true' || value === '1')),
+  REFRESH_ROTATION_GRACE_SECONDS: z.coerce.number().int().min(0).default(30),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;

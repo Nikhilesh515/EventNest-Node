@@ -21,6 +21,10 @@ export interface EventRepository {
   list(filters: EventListFilters): Promise<Event[]>;
   count(filters: Omit<EventListFilters, 'offset' | 'limit'>): Promise<number>;
   listByOrganizer(organizerId: string): Promise<Event[]>;
-  setTags(eventId: string, tags: { tagId: string; tagName: string }[], trx?: Knex.Transaction): Promise<void>;
+  setTags(
+    eventId: string,
+    tags: { tagId: string; tagName: string }[],
+    trx?: Knex.Transaction,
+  ): Promise<void>;
   getTagsByEventId(eventId: string): Promise<{ tagId: string; tagName: string }[]>;
 }

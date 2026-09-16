@@ -64,6 +64,13 @@ export class KnexRefreshTokenRepository implements RefreshTokenRepository {
       });
   }
 
+  async revokeAllActiveByUserId(userId: string): Promise<void> {
+    await this.knex('refresh_tokens')
+      .where('user_id', userId)
+      .whereNull('revoked_at')
+      .update({ revoked_at: this.knex.fn.now() });
+  }
+
   async deleteByUserId(userId: string): Promise<void> {
     await this.knex('refresh_tokens').where('user_id', userId).del();
   }

@@ -91,16 +91,16 @@ describe('TC-CORE-053: Secrets are redacted in logs', () => {
     await request(app)
       .post('/secret')
       .set('Authorization', 'Bearer SUPER_SECRET_TOKEN')
-      .set('Cookie', 'session=SECRET_COOKIE')
-      .send({ password: 'P@ssw0rd', refreshToken: 'RT_SECRET' });
+      .set('Cookie', 'eventnest.refresh_token=RT_SECRET')
+      .send({ password: 'P@ssw0rd' });
     await FLUSH();
 
     const output = lines.join('');
 
     expect(output).toContain('[Redacted]');
     expect(output).not.toContain('SUPER_SECRET_TOKEN');
-    expect(output).not.toContain('SECRET_COOKIE');
-    expect(output).not.toContain('P@ssw0rd');
     expect(output).not.toContain('RT_SECRET');
+    expect(output).not.toContain('P@ssw0rd');
+    expect(output).not.toContain('session=abc');
   });
 });

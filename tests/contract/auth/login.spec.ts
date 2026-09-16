@@ -6,7 +6,7 @@ import {
   resetTestData,
   type TestAppContext,
 } from '../../helpers/test-setup.js';
-import { createTestUser } from '../../helpers/auth-helpers.js';
+import { createTestUser, setCookieHeaders, REFRESH_COOKIE } from '../../helpers/auth-helpers.js';
 
 let ctx: TestAppContext;
 
@@ -36,7 +36,6 @@ describe('POST /api/auth/login', () => {
     expect(res.body.result).toEqual(
       expect.objectContaining({
         accessToken: expect.any(String),
-        refreshToken: expect.any(String),
         expiresIn: 3600,
         user: expect.objectContaining({
           email: 'login-valid@test.example.com',
@@ -46,6 +45,26 @@ describe('POST /api/auth/login', () => {
         }),
       }),
     );
+    expect(res.body.result.refreshToken).toBeUndefined();
+  });
+
+  it('sets an HttpOnly refresh cookie scoped to /api/auth', async () => {
+    await createTestUser(ctx.knex, 'login-cookie@test.example.com', 'password123', 'Cookie User');
+
+    const res = await request(ctx.app).post('/api/auth/login').send({
+      email: 'login-cookie@test.example.com',
+      password: 'password123',
+    });
+
+    const cookies = setCookieHeaders(res);
+    const refresh = cookies.find((c) => c.startsWith(`${REFRESH_COOKIE}=`));
+
+    expect(refresh).toBeDefined();
+    expect(refresh).toContain('HttpOnly');
+    expect(refresh).toContain('SameSite=Lax');
+    expect(refresh).toContain('Path=/api/auth');
+    expect(refresh).toContain(`Max-Age=${30 * 24 * 60 * 60}`);
+    expect(refresh).not.toContain('Secure');
   });
 
   it('returns 401 with unknown email', async () => {

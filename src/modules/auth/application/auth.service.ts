@@ -15,7 +15,7 @@ import {
   AccountDeactivatedError,
   InvalidRefreshTokenError,
 } from '../domain/errors.js';
-import type { AuthResponseDto, AuthUserDto } from './dto/auth.dto.js';
+import type { AuthSessionResult, AuthUserDto } from './dto/auth.dto.js';
 
 const BCRYPT_COST = 12;
 const DUMMY_HASH = '$2b$12$' + 'a'.repeat(53);
@@ -26,6 +26,7 @@ export interface AuthServiceConfig {
   JWT_AUDIENCE: string;
   JWT_ACCESS_EXPIRY_MINUTES: number;
   JWT_REFRESH_EXPIRY_DAYS: number;
+  REFRESH_ROTATION_GRACE_SECONDS: number;
 }
 
 export class AuthService {
@@ -41,7 +42,7 @@ export class AuthService {
     email: string;
     password: string;
     displayName: string;
-  }): Promise<AuthResponseDto> {
+  }): Promise<AuthSessionResult> {
     const existing = await this.users.findByEmail(input.email);
     if (existing) {
       throw new EmailAlreadyExistsError(input.email);
@@ -65,14 +66,16 @@ export class AuthService {
     await this.writePermissionCache(user.id);
 
     return {
-      accessToken,
+      body: {
+        accessToken,
+        expiresIn: this.config.JWT_ACCESS_EXPIRY_MINUTES * 60,
+        user: this.toAuthUserDto(user),
+      },
       refreshToken,
-      expiresIn: this.config.JWT_ACCESS_EXPIRY_MINUTES * 60,
-      user: this.toAuthUserDto(user),
     };
   }
 
-  async login(input: { email: string; password: string }): Promise<AuthResponseDto> {
+  async login(input: { email: string; password: string }): Promise<AuthSessionResult> {
     const user = await this.users.findByEmail(input.email);
 
     if (!user) {
@@ -97,19 +100,41 @@ export class AuthService {
     await this.writePermissionCache(user.id);
 
     return {
-      accessToken,
+      body: {
+        accessToken,
+        expiresIn: this.config.JWT_ACCESS_EXPIRY_MINUTES * 60,
+        user: this.toAuthUserDto(user),
+      },
       refreshToken,
-      expiresIn: this.config.JWT_ACCESS_EXPIRY_MINUTES * 60,
-      user: this.toAuthUserDto(user),
     };
   }
 
-  async refresh(refreshToken: string): Promise<AuthResponseDto> {
+  async refresh(refreshToken: string | null): Promise<AuthSessionResult> {
+    if (!refreshToken) {
+      throw new InvalidRefreshTokenError();
+    }
+
     const tokenHash = this.hashToken(refreshToken);
     const stored = await this.refreshTokens.findByTokenHash(tokenHash);
+    const now = new Date();
 
-    if (!stored || stored.isExpired(new Date()) || stored.isRevoked) {
+    if (!stored || stored.isExpired(now)) {
       throw new InvalidRefreshTokenError();
+    }
+
+    if (stored.isRevoked) {
+      const rotatedRecently =
+        stored.replacedByTokenHash !== null &&
+        stored.revokedAt !== null &&
+        now.getTime() - stored.revokedAt.getTime() <
+          this.config.REFRESH_ROTATION_GRACE_SECONDS * 1000;
+
+      if (!rotatedRecently) {
+        if (stored.replacedByTokenHash !== null) {
+          await this.refreshTokens.revokeAllActiveByUserId(stored.userId);
+        }
+        throw new InvalidRefreshTokenError();
+      }
     }
 
     const user = await this.users.findById(stored.userId);
@@ -122,8 +147,10 @@ export class AuthService {
       tokenHash: newHash,
       expiresAt,
     } = this.generateRefreshToken();
-    stored.revoke(newHash);
-    await this.refreshTokens.revoke(tokenHash, newHash);
+
+    if (!stored.isRevoked) {
+      await this.refreshTokens.revoke(tokenHash, newHash);
+    }
 
     const newRt = RefreshToken.create(user.id, newHash, expiresAt);
     await this.refreshTokens.create(newRt);
@@ -132,14 +159,19 @@ export class AuthService {
     await this.writePermissionCache(user.id);
 
     return {
-      accessToken,
+      body: {
+        accessToken,
+        expiresIn: this.config.JWT_ACCESS_EXPIRY_MINUTES * 60,
+        user: this.toAuthUserDto(user),
+      },
       refreshToken: newRefreshToken,
-      expiresIn: this.config.JWT_ACCESS_EXPIRY_MINUTES * 60,
-      user: this.toAuthUserDto(user),
     };
   }
 
-  async logout(refreshToken: string): Promise<void> {
+  async logout(refreshToken: string | null): Promise<void> {
+    if (!refreshToken) {
+      return;
+    }
     const tokenHash = this.hashToken(refreshToken);
     const stored = await this.refreshTokens.findByTokenHash(tokenHash);
     if (stored && !stored.isRevoked) {

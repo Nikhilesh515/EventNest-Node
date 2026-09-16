@@ -2,13 +2,12 @@ import { type RouteConfig } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
 import { registry } from './registry.js';
 
+import { registerSchema, loginSchema } from '../../../modules/auth/http/auth.schemas.js';
 import {
-  registerSchema,
-  loginSchema,
-  refreshSchema,
-  logoutSchema,
-} from '../../../modules/auth/http/auth.schemas.js';
-import { updateUserSchema, listUsersSchema, createAdminUserSchema } from '../../../modules/auth/http/user.schemas.js';
+  updateUserSchema,
+  listUsersSchema,
+  createAdminUserSchema,
+} from '../../../modules/auth/http/user.schemas.js';
 import {
   grantSchema,
   revokeSchema,
@@ -40,6 +39,12 @@ import {
 } from '../../../modules/rsvps/http/rsvp.schemas.js';
 
 const userIdParam = z.object({ id: z.string().uuid() });
+
+registry.registerComponent('securitySchemes', 'refreshCookie', {
+  type: 'apiKey',
+  in: 'cookie',
+  name: 'eventnest.refresh_token',
+});
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -74,11 +79,22 @@ registry.registerPath({
   method: 'post',
   path: '/api/auth/refresh',
   tags: ['Auth'],
-  summary: 'Refresh access token',
-  request: { body: { content: { 'application/json': { schema: refreshSchema.body } } } },
+  summary: 'Refresh access token (refresh cookie)',
+  description:
+    'Reads the `eventnest.refresh_token` HttpOnly cookie and rotates it. Returns a new access token in the body and a new refresh cookie in `Set-Cookie`.',
+  security: [{ refreshCookie: [] }],
   responses: {
-    200: { description: 'AuthResponseDto' },
-    401: { description: 'Invalid refresh token' },
+    200: {
+      description: 'AuthResponseDto',
+      headers: {
+        'Set-Cookie': {
+          description: 'Rotated refresh cookie (`HttpOnly; SameSite=Lax; Path=/api/auth`)',
+          schema: { type: 'string' },
+        },
+      },
+    },
+    401: { description: 'Invalid, expired, or missing refresh cookie (cookie is cleared)' },
+    403: { description: 'Request origin is not allowed' },
   },
 } as unknown as RouteConfig);
 
@@ -86,9 +102,22 @@ registry.registerPath({
   method: 'post',
   path: '/api/auth/logout',
   tags: ['Auth'],
-  summary: 'Logout (revoke refresh token)',
-  request: { body: { content: { 'application/json': { schema: logoutSchema.body } } } },
-  responses: { 204: { description: 'No content' } },
+  summary: 'Logout (revoke refresh cookie)',
+  description:
+    'Revokes the session identified by the `eventnest.refresh_token` cookie and clears it. Idempotent when the cookie is missing or unknown.',
+  security: [{ refreshCookie: [] }],
+  responses: {
+    204: {
+      description: 'No content',
+      headers: {
+        'Set-Cookie': {
+          description: 'Cleared refresh cookie',
+          schema: { type: 'string' },
+        },
+      },
+    },
+    403: { description: 'Request origin is not allowed' },
+  },
 } as unknown as RouteConfig);
 
 // ---------------------------------------------------------------------------

@@ -15,7 +15,9 @@ export const updateRoleSchema = {
     name: z.string().min(1).max(50).optional(),
     displayName: z.string().min(1).max(100).optional(),
     description: z.string().max(500).nullable().optional(),
-    permissionNames: z.array(z.enum(ALL_PERMISSIONS as unknown as [string, ...string[]])).optional(),
+    permissionNames: z
+      .array(z.enum(ALL_PERMISSIONS as unknown as [string, ...string[]]))
+      .optional(),
   }),
 };
 

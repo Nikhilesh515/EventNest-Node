@@ -20,9 +20,6 @@ beforeAll(async () => {
   ctx = await getSharedTestApp();
   const admin = await loginUser(ctx.app, 'admin@eventnest.io', 'Admin@123');
   adminToken = admin.accessToken;
-  const user = await registerUser(ctx.app, 'rsvpuser@test.example.com', 'password123', 'RSVP User');
-  userToken = user.accessToken;
-  userId = user.userId;
 });
 
 afterAll(async () => {
@@ -31,6 +28,9 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await resetTestData(ctx.knex);
+  const user = await registerUser(ctx.app, 'rsvpuser@test.example.com', 'password123', 'RSVP User');
+  userToken = user.accessToken;
+  userId = user.userId;
 });
 
 async function createPublishedEvent(token: string, capacity = 100): Promise<string> {
